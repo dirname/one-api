@@ -301,7 +301,7 @@ const LogsTable = () => {
                 }}
                 width={1}
               >
-                提示
+                Prompt
               </Table.HeaderCell>
               <Table.HeaderCell
                 style={{ cursor: 'pointer' }}
@@ -310,7 +310,16 @@ const LogsTable = () => {
                 }}
                 width={1}
               >
-                补全
+                Completion
+              </Table.HeaderCell>
+              <Table.HeaderCell
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    sortLog('quota');
+                  }}
+                  width={1}
+              >
+                Tokens
               </Table.HeaderCell>
               <Table.HeaderCell
                 style={{ cursor: 'pointer' }}
@@ -359,6 +368,7 @@ const LogsTable = () => {
                     <Table.Cell>{log.model_name ? <Label basic>{log.model_name}</Label> : ''}</Table.Cell>
                     <Table.Cell>{log.prompt_tokens ? log.prompt_tokens : ''}</Table.Cell>
                     <Table.Cell>{log.completion_tokens ? log.completion_tokens : ''}</Table.Cell>
+                    <Table.Cell>{log.quota ? log.quota : ''}</Table.Cell>
                     <Table.Cell>{log.quota ? renderQuota(log.quota, 6) : ''}</Table.Cell>
                     <Table.Cell>{log.content}</Table.Cell>
                   </Table.Row>
@@ -395,6 +405,9 @@ const LogsTable = () => {
             </Table.Row>
           </Table.Footer>
         </Table>
+        <div>
+          <hr />计算方法: <strong>额度</strong> = <code>Tokens / 单位美元</code> <strong>Tokens</strong> = <code>模型倍率 * 分组倍率 * (提示 + 补全 * 补全倍率)</code> <strong>补全倍率</strong> = <code>GPT3.5 = 1.33 GPT4 = 2</code>
+        </div>
       </Segment>
     </>
   );

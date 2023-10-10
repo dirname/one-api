@@ -24,6 +24,7 @@ import EditRedemption from './pages/Redemption/EditRedemption';
 import TopUp from './pages/TopUp';
 import Log from './pages/Log';
 import Chat from './pages/Chat';
+import Tokenizer from "./pages/Tokenizer";
 
 const Home = lazy(() => import('./pages/Home'));
 const About = lazy(() => import('./pages/About'));
@@ -282,6 +283,14 @@ function App() {
             <Chat />
           </Suspense>
         }
+      />
+      <Route
+          path='/tokenizer'
+          element={
+              <Suspense fallback={<Loading></Loading>}>
+                  <Tokenizer />
+              </Suspense>
+          }
       />
       <Route path='*' element={NotFound} />
     </Routes>
