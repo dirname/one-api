@@ -55,7 +55,7 @@ const RegisterForm = () => {
     }
     if (username && password) {
       if (turnstileEnabled && turnstileToken === '') {
-        showInfo('请稍后几秒重试，Turnstile 正在检查用户环境！');
+        showInfo('请完成人机验证，或者稍后几秒等待环境检测完成');
         return;
       }
       setLoading(true);
@@ -81,7 +81,7 @@ const RegisterForm = () => {
   const sendVerificationCode = async () => {
     if (inputs.email === '') return;
     if (turnstileEnabled && turnstileToken === '') {
-      showInfo('请稍后几秒重试，Turnstile 正在检查用户环境！');
+      showInfo('请完成人机验证，或者稍后几秒等待环境检测完成');
       return;
     }
     setLoading(true);

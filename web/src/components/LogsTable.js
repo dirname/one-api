@@ -406,7 +406,7 @@ const LogsTable = () => {
           </Table.Footer>
         </Table>
         <div>
-          <hr />计算方法: <strong>额度</strong> = <code>Tokens / 单位美元</code> <strong>Tokens</strong> = <code>模型倍率 * 分组倍率 * (提示 + 补全 * 补全倍率)</code> <strong>补全倍率</strong> = <code>GPT3.5 = 1.33 GPT4 = 2</code>
+          <hr />计算方法: <strong>额度</strong> = <code>Tokens / 单位美元</code> <strong>Tokens</strong> = <code>模型倍率 * 分组倍率 * (Prompt + Completion * 补全倍率)</code> <strong>补全倍率</strong> = <code>GPT3.5 = 1.33 GPT4 = 2</code>
         </div>
       </Segment>
     </>

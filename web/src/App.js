@@ -27,7 +27,7 @@ import Chat from './pages/Chat';
 import Tokenizer from "./pages/Tokenizer";
 
 const Home = lazy(() => import('./pages/Home'));
-const About = lazy(() => import('./pages/About'));
+// const About = lazy(() => import('./pages/About'));
 
 function App() {
   const [userState, userDispatch] = useContext(UserContext);
@@ -268,22 +268,22 @@ function App() {
           </PrivateRoute>
         }
       />
-      <Route
-        path='/about'
-        element={
-          <Suspense fallback={<Loading></Loading>}>
-            <About />
-          </Suspense>
-        }
-      />
-      <Route
-        path='/chat'
-        element={
-          <Suspense fallback={<Loading></Loading>}>
-            <Chat />
-          </Suspense>
-        }
-      />
+      {/*<Route*/}
+      {/*  path='/about'*/}
+      {/*  element={*/}
+      {/*    <Suspense fallback={<Loading></Loading>}>*/}
+      {/*      <About />*/}
+      {/*    </Suspense>*/}
+      {/*  }*/}
+      {/*/>*/}
+      {/*<Route*/}
+      {/*  path='/chat'*/}
+      {/*  element={*/}
+      {/*    <Suspense fallback={<Loading></Loading>}>*/}
+      {/*      <Chat />*/}
+      {/*    </Suspense>*/}
+      {/*  }*/}
+      {/*/>*/}
       <Route
           path='/tokenizer'
           element={
@@ -292,7 +292,9 @@ function App() {
               </Suspense>
           }
       />
-      <Route path='*' element={NotFound} />
+      <Route path='*' element={
+          <NotFound />
+      } />
     </Routes>
   );
 }

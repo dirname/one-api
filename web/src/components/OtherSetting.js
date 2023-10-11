@@ -154,18 +154,18 @@ const OtherSetting = () => {
             />
           </Form.Group>
           <Form.Button onClick={() => submitOption('HomePageContent')}>保存首页内容</Form.Button>
-          <Form.Group widths='equal'>
-            <Form.TextArea
-              label='关于'
-              placeholder='在此输入新的关于内容，支持 Markdown & HTML 代码。如果输入的是一个链接，则会使用该链接作为 iframe 的 src 属性，这允许你设置任意网页作为关于页面。'
-              value={inputs.About}
-              name='About'
-              onChange={handleInputChange}
-              style={{ minHeight: 150, fontFamily: 'JetBrains Mono, Consolas' }}
-            />
-          </Form.Group>
-          <Form.Button onClick={submitAbout}>保存关于</Form.Button>
-          <Message>移除 One API 的版权标识必须首先获得授权，项目维护需要花费大量精力，如果本项目对你有意义，请主动支持本项目。</Message>
+          {/*<Form.Group widths='equal'>*/}
+          {/*  <Form.TextArea*/}
+          {/*    label='关于'*/}
+          {/*    placeholder='在此输入新的关于内容，支持 Markdown & HTML 代码。如果输入的是一个链接，则会使用该链接作为 iframe 的 src 属性，这允许你设置任意网页作为关于页面。'*/}
+          {/*    value={inputs.About}*/}
+          {/*    name='About'*/}
+          {/*    onChange={handleInputChange}*/}
+          {/*    style={{ minHeight: 150, fontFamily: 'JetBrains Mono, Consolas' }}*/}
+          {/*  />*/}
+          {/*</Form.Group>*/}
+          {/*<Form.Button onClick={submitAbout}>保存关于</Form.Button>*/}
+          {/*<Message>移除 One API 的版权标识必须首先获得授权，项目维护需要花费大量精力，如果本项目对你有意义，请主动支持本项目。</Message>*/}
           <Form.Group widths='equal'>
             <Form.Input
               label='页脚'
