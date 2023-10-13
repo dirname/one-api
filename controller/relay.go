@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"one-api/common"
+	"one-api/model"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -202,18 +204,32 @@ func Relay(c *gin.Context) {
 		if retryTimesStr == "" {
 			retryTimes = common.RetryTimes
 		}
+		channelId := c.GetInt("channel_id")
 		if retryTimes > 0 {
 			c.Redirect(http.StatusTemporaryRedirect, fmt.Sprintf("%s?retry=%d", c.Request.URL.Path, retryTimes-1))
 		} else {
-			if err.StatusCode == http.StatusTooManyRequests {
-				err.OpenAIError.Message = "当前分组上游负载已饱和，请稍后再试"
+			channel, _err := model.GetChannelById(channelId, false)
+			if _err != nil || channel == nil {
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"error": "Not found for channel",
+				})
+			} else {
+				baseURL := channel.GetBaseURL()
+				if err.StatusCode == http.StatusTooManyRequests {
+					err.OpenAIError.Message = "当前分组上游负载已饱和，请稍后再试"
+				}
+				err.OpenAIError.Message = common.MessageWithRequestId(err.OpenAIError.Message, requestId)
+				err.OpenAIError = OpenAIError{
+					Message: replaceUpstreamInfo(err.OpenAIError.Message, baseURL, channelId),
+					Type:    replaceUpstreamInfo(err.OpenAIError.Type, baseURL, channelId),
+					Param:   replaceUpstreamInfo(err.OpenAIError.Param, baseURL, channelId),
+					Code:    err.OpenAIError.Code,
+				}
+				c.JSON(err.StatusCode, gin.H{
+					"error": err.OpenAIError,
+				})
 			}
-			err.OpenAIError.Message = common.MessageWithRequestId(err.OpenAIError.Message, requestId)
-			c.JSON(err.StatusCode, gin.H{
-				"error": err.OpenAIError,
-			})
 		}
-		channelId := c.GetInt("channel_id")
 		common.LogError(c.Request.Context(), fmt.Sprintf("relay error (channel #%d): %s", channelId, err.Message))
 		// https://platform.openai.com/docs/guides/error-codes/api-errors
 		if shouldDisableChannel(&err.OpenAIError, err.StatusCode) {
@@ -246,4 +262,14 @@ func RelayNotFound(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{
 		"error": err,
 	})
+}
+
+func replaceUpstreamInfo(info, base string, id int) string {
+	pattern := regexp.MustCompile(`//([\w.-]+)`)
+	base = strings.ReplaceAll(pattern.FindString(base), `//`, "")
+	key := []string{base, "one-api", "one_api", "ONE_API", "ONE-API"}
+	for _, k := range key {
+		info = strings.ReplaceAll(info, k, fmt.Sprintf("upstream #%d", id))
+	}
+	return info
 }

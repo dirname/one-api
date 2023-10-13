@@ -10,6 +10,7 @@ import (
 	"one-api/common"
 	"one-api/model"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -72,6 +73,11 @@ func testChannel(channel *model.Channel, request ChatRequest) (err error, openai
 	var response TextResponse
 	err = json.NewDecoder(resp.Body).Decode(&response)
 	if err != nil {
+		if resp.StatusCode == http.StatusOK {
+			if strings.HasPrefix(resp.Header.Get("Content-Type"), "text/event-stream") || resp.Header.Get("Transfer-Encoding") == "chunked" {
+				return nil, nil
+			}
+		}
 		return err, nil
 	}
 	if response.Usage.CompletionTokens == 0 {
