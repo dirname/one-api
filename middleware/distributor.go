@@ -25,16 +25,16 @@ func Distribute() func(c *gin.Context) {
 		if ok {
 			id, err := strconv.Atoi(channelId.(string))
 			if err != nil {
-				abortWithMessage(c, http.StatusBadRequest, "无效的渠道 Id")
+				abortWithMessage(c, http.StatusBadRequest, "无效的服务节点 ID")
 				return
 			}
 			channel, err = model.GetChannelById(id, true)
 			if err != nil {
-				abortWithMessage(c, http.StatusBadRequest, "无效的渠道 Id")
+				abortWithMessage(c, http.StatusBadRequest, "无效的服务节点 ID")
 				return
 			}
 			if channel.Status != common.ChannelStatusEnabled {
-				abortWithMessage(c, http.StatusForbidden, "该渠道已被禁用")
+				abortWithMessage(c, http.StatusForbidden, "该服务节点已被禁用")
 				return
 			}
 		} else {
@@ -70,9 +70,9 @@ func Distribute() func(c *gin.Context) {
 			}
 			channel, err = model.CacheGetRandomSatisfiedChannel(userGroup, modelRequest.Model)
 			if err != nil {
-				message := fmt.Sprintf("当前分组 %s 下对于模型 %s 无可用渠道", userGroup, modelRequest.Model)
+				message := fmt.Sprintf("当前分组 %s 下对于模型 %s 无可用服务节点", userGroup, modelRequest.Model)
 				if channel != nil {
-					common.SysError(fmt.Sprintf("渠道不存在：%d", channel.Id))
+					common.SysError(fmt.Sprintf("服务节点不存在：%d", channel.Id))
 					message = "数据库一致性已被破坏，请联系管理员"
 				}
 				abortWithMessage(c, http.StatusServiceUnavailable, message)

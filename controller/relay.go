@@ -271,5 +271,13 @@ func replaceUpstreamInfo(info, base string, id int) string {
 	for _, k := range key {
 		info = strings.ReplaceAll(info, k, fmt.Sprintf("upstream #%d", id))
 	}
+
+	re := regexp.MustCompile(`当前分组 (.*?) 下对于模型 (.*?) 无可用渠道`)
+	match := re.FindStringSubmatch(info)
+
+	if len(match) > 0 {
+		info = fmt.Sprintf("当前服务节点下模型 %s 暂不可用，请更换模型", match[2])
+	}
+
 	return info
 }
