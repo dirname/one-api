@@ -156,6 +156,21 @@ func disableChannel(channelId int, channelName string, reason string) {
 	}
 }
 
+func enableChannel(channelId int, channelName string, notify bool) {
+	if common.RootUserEmail == "" {
+		common.RootUserEmail = model.GetRootUserEmail()
+	}
+	model.UpdateChannelStatusById(channelId, common.ChannelStatusEnabled)
+	if notify {
+		subject := fmt.Sprintf("通道「%s」（#%d）已启用", channelName, channelId)
+		content := fmt.Sprintf("通道「%s」（#%d）通过测试，已重新启用", channelName, channelId)
+		err := common.SendEmail(subject, common.RootUserEmail, content)
+		if err != nil {
+			common.SysError(fmt.Sprintf("failed to send email: %s", err.Error()))
+		}
+	}
+}
+
 func testAllChannels(notify bool) error {
 	if common.RootUserEmail == "" {
 		common.RootUserEmail = model.GetRootUserEmail()
@@ -178,9 +193,9 @@ func testAllChannels(notify bool) error {
 	}
 	go func() {
 		for _, channel := range channels {
-			if channel.Status != common.ChannelStatusEnabled {
-				continue
-			}
+			//if channel.Status != common.ChannelStatusEnabled {
+			//	continue
+			//}
 			tik := time.Now()
 			err, openaiErr := testChannel(channel, *testRequest)
 			tok := time.Now()
@@ -191,6 +206,9 @@ func testAllChannels(notify bool) error {
 			}
 			if shouldDisableChannel(openaiErr, -1) {
 				disableChannel(channel.Id, channel.Name, err.Error())
+			}
+			if channel.Status != common.ChannelStatusEnabled && !shouldDisableChannel(openaiErr, -1) && !(milliseconds > disableThreshold) {
+				enableChannel(channel.Id, channel.Name, !notify)
 			}
 			channel.UpdateResponseTime(milliseconds)
 			time.Sleep(common.RequestInterval)
