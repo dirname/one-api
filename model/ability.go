@@ -6,11 +6,12 @@ import (
 )
 
 type Ability struct {
-	Group     string `json:"group" gorm:"type:varchar(32);primaryKey;autoIncrement:false"`
-	Model     string `json:"model" gorm:"primaryKey;autoIncrement:false"`
-	ChannelId int    `json:"channel_id" gorm:"primaryKey;autoIncrement:false;index"`
-	Enabled   bool   `json:"enabled"`
-	Priority  *int64 `json:"priority" gorm:"bigint;default:0;index"`
+	Group     string  `json:"group" gorm:"type:varchar(32);primaryKey;autoIncrement:false"`
+	Model     string  `json:"model" gorm:"primaryKey;autoIncrement:false"`
+	ChannelId int     `json:"channel_id" gorm:"primaryKey;autoIncrement:false;index"`
+	Channel   Channel `json:"-" gorm:"constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	Enabled   bool    `json:"enabled"`
+	Priority  *int64  `json:"priority" gorm:"bigint;default:0;index"`
 }
 
 func GetRandomSatisfiedChannel(group string, model string) (*Channel, error) {
