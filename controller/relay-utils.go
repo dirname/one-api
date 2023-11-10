@@ -1,11 +1,20 @@
 package controller
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/chai2010/webp"
 	"github.com/gin-gonic/gin"
 	"github.com/pkoukk/tiktoken-go"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
+	"math"
 	"net/http"
 	"one-api/common"
 	"strconv"
@@ -93,6 +102,157 @@ func countTokenMessages(messages []Message, model string) int {
 	}
 	tokenNum += 3 // Every reply is primed with <|start|>assistant<|message|>
 	return tokenNum
+}
+
+type imgInfo struct {
+	width  int
+	height int
+	detail string
+}
+
+func (image imgInfo) calculateTokenCost() int {
+	if image.detail == "low" {
+		return 85
+	}
+
+	maxSize := 2048
+	minSize := 768
+	tileSize := 512
+	tileCost := 170
+	baseCost := 85
+
+	// Scale down to fit within 2048 square if necessary
+	if image.width > maxSize || image.height > maxSize {
+		ratio := float64(image.width) / float64(image.height)
+		if image.width > image.height {
+			image.width = maxSize
+			image.height = int(float64(maxSize) / ratio)
+		} else {
+			image.height = maxSize
+			image.width = int(float64(maxSize) * ratio)
+		}
+	}
+
+	// Scale down to shortest side is 768px
+	if image.width < image.height {
+		image.height = int(float64(image.height) / float64(image.width) * float64(minSize))
+		image.width = minSize
+	} else {
+		image.width = int(float64(image.width) / float64(image.height) * float64(minSize))
+		image.height = minSize
+	}
+
+	// Calculate number of 512px tiles needed
+	tiles := math.Ceil(float64(image.width)/float64(tileSize)) * math.Ceil(float64(image.height)/float64(tileSize))
+
+	// Calculate final token cost
+	return int(tiles)*tileCost + baseCost
+}
+
+func getImageInfo(url string) (*imgInfo, error) {
+	var isWebp bool
+	var data []byte
+	var err error
+	if strings.HasPrefix(url, "http") {
+		isWebp, data, err = getImageFromURL(url)
+	} else if strings.HasPrefix("data:image/", url) {
+		isWebp, data, err = getImageFromBase64(url)
+	} else {
+		return nil, errors.New("invalid image url")
+	}
+
+	res := &imgInfo{}
+	if isWebp {
+		w, h, _, err := webp.GetInfo(data)
+		if err != nil {
+			return nil, errors.New("failed to get webp image info")
+		}
+		res.width = w
+		res.height = h
+		return res, nil
+	}
+	img, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, errors.New("failed to decode image")
+	}
+	res.width = img.Bounds().Dx()
+	res.height = img.Bounds().Dy()
+	return res, nil
+}
+
+func getImageFromURL(url string) (isWebp bool, resp []byte, err error) {
+	// Decode image
+	res, err := http.Get(url)
+	if err != nil {
+		err = errors.New("failed to get image")
+		return
+	}
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
+
+	resp, err = io.ReadAll(res.Body)
+
+	contentType := res.Header.Get("Content-Type")
+	if strings.HasPrefix(contentType, "image/webp") {
+		isWebp = true
+	}
+
+	return
+}
+
+func getImageFromBase64(base64Data string) (isWebp bool, resp []byte, err error) {
+	// Remove data:image/xxx;base64, prefix
+	isWebp = strings.HasPrefix(base64Data, "image/webp")
+	data := strings.SplitN(base64Data, ",", 2)
+	if len(data) != 2 {
+		err = errors.New("invalid base64 data")
+		return
+	}
+
+	// Decode base64 data
+	resp, err = base64.StdEncoding.DecodeString(data[1])
+	if err != nil {
+		err = errors.New("failed to decoding base64 data")
+		return
+	}
+
+	return
+}
+
+func countVisionTokenMessage(messages []VisionMessage) (int, error) {
+	tokenEncoder := getTokenEncoder("gpt-4")
+	var tokensPerMessage int
+	var tokensPerName int
+	tokensPerMessage = 3
+	tokensPerName = 1
+	tokenNum := 0
+	for _, message := range messages {
+		tokenNum += tokensPerMessage
+		tokenNum += getTokenNum(tokenEncoder, message.Role)
+		if message.Name != nil {
+			tokenNum += tokensPerName
+			tokenNum += getTokenNum(tokenEncoder, *message.Name)
+		}
+		for _, content := range message.Content {
+			tokenNum += getTokenNum(tokenEncoder, content.Text)
+			if len(content.ImageURL.URL) > 0 {
+				img, err := getImageInfo(content.ImageURL.URL)
+				if err != nil {
+					return 0, fmt.Errorf("failed to get %s info", content.ImageURL.URL)
+				}
+				detail := "auto"
+				if len(content.ImageURL.Detail) > 0 {
+					detail = content.ImageURL.Detail
+				}
+				img.detail = detail
+
+				tokenNum += img.calculateTokenCost()
+			}
+		}
+	}
+	tokenNum += 3 // Every reply is primed with <|start|>assistant<|message|>
+	return tokenNum, nil
 }
 
 func countTokenInput(input any, model string) int {
