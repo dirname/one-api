@@ -7,7 +7,7 @@ import { ITEMS_PER_PAGE } from '../constants';
 import { renderQuota } from '../helpers/render';
 
 const COPY_OPTIONS = [
-  { key: 'next', text: 'ChatGPT Next Web', value: 'next' },
+  { key: 'next', text: 'PuerHub ChatGPT', value: 'next' },
   { key: 'ama', text: 'AMA 问天', value: 'ama' },
   { key: 'opencat', text: 'OpenCat', value: 'opencat' },
 ];
@@ -98,7 +98,7 @@ const TokensTable = () => {
     if (nextLink) {
       nextUrl = nextLink + `/#/?settings={"key":"sk-${key}","url":"${serverAddress}"}`;
     } else {
-      nextUrl = `https://chat.oneapi.pro/#/?settings={"key":"sk-${key}","url":"${serverAddress}"}`;
+      nextUrl = `https://puerhub.xyz/#/?settings={"key":"sk-${key}","url":"${serverAddress}"}`;
     }
 
     let url;
@@ -140,7 +140,7 @@ const TokensTable = () => {
     if (chatLink) {
       defaultUrl = chatLink + `/#/?settings={"key":"sk-${key}","url":"${serverAddress}"}`;
     } else {
-      defaultUrl = `https://chat.oneapi.pro/#/?settings={"key":"sk-${key}","url":"${serverAddress}"}`;
+      defaultUrl = `https://puerhub.xyz/#/?settings={"key":"sk-${key}","url":"${serverAddress}"}`;
     }
     let url;
     switch (type) {

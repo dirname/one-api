@@ -277,7 +277,7 @@ func countTokenText(text string, model string) int {
 func errorWrapper(err error, code string, statusCode int) *OpenAIErrorWithStatusCode {
 	openAIError := OpenAIError{
 		Message: err.Error(),
-		Type:    "one_api_error",
+		Type:    "PUERHUB_AI_ERROR",
 		Code:    code,
 	}
 	return &OpenAIErrorWithStatusCode{

@@ -10,6 +10,7 @@ import (
 type Redemption struct {
 	Id           int    `json:"id"`
 	UserId       int    `json:"user_id"`
+	User         User   `json:"-" gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	Key          string `json:"key" gorm:"type:char(32);uniqueIndex"`
 	Status       int    `json:"status" gorm:"default:1"`
 	Name         string `json:"name" gorm:"index"`
@@ -75,7 +76,7 @@ func Redeem(key string, userId int) (quota int, err error) {
 	if err != nil {
 		return 0, errors.New("兑换失败，" + err.Error())
 	}
-	RecordLog(userId, LogTypeTopup, fmt.Sprintf("通过兑换码充值 %s", common.LogQuota(redemption.Quota)))
+	RecordLog(userId, LogTypeTopup, fmt.Sprintf("通过兑换码 %s*****%s 充值 %s", key[0:4], key[len(key)-4:], common.LogQuota(redemption.Quota)))
 	return redemption.Quota, nil
 }
 

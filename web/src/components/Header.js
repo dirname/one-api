@@ -52,19 +52,24 @@ let headerButtons = [
     icon: 'setting'
   },
   {
-    name: '关于',
-    to: '/about',
-    icon: 'info circle'
-  }
+    name: '计数',
+    to:'/tokenizer',
+    icon: 'calculator'
+  },
+  // {
+  //   name: '关于',
+  //   to: '/about',
+  //   icon: 'info circle'
+  // }
 ];
 
-if (localStorage.getItem('chat_link')) {
-  headerButtons.splice(1, 0, {
-    name: '聊天',
-    to: '/chat',
-    icon: 'comments'
-  });
-}
+// if (localStorage.getItem('chat_link')) {
+//   headerButtons.splice(1, 0, {
+//     name: '聊天',
+//     to: '/chat',
+//     icon: 'comments'
+//   });
+// }
 
 const Header = () => {
   const [userState, userDispatch] = useContext(UserContext);
