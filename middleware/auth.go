@@ -45,7 +45,7 @@ func authHelper(c *gin.Context, minRole int) {
 	if status.(int) == common.UserStatusDisabled {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
-			"message": "用户已被封禁",
+			"message": "The user has been banned.",
 		})
 		c.Abort()
 		return
@@ -53,7 +53,7 @@ func authHelper(c *gin.Context, minRole int) {
 	if role.(int) < minRole {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
-			"message": "无权进行此操作，权限不足",
+			"message": "You do not have the authority to perform this operation.",
 		})
 		c.Abort()
 		return
@@ -116,7 +116,7 @@ func TokenAuth() func(c *gin.Context) {
 			if model.IsAdmin(token.UserId) {
 				c.Set("channelId", parts[1])
 			} else {
-				abortWithMessage(c, http.StatusForbidden, "普通用户不支持指定服务节点")
+				abortWithMessage(c, http.StatusForbidden, "Normal users do not have the ability to specify service nodes.")
 				return
 			}
 		}

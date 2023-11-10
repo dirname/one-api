@@ -36,17 +36,17 @@ func SearchUserTokens(userId int, keyword string) (tokens []*Token, err error) {
 
 func ValidateUserToken(key string) (token *Token, err error) {
 	if key == "" {
-		return nil, errors.New("未提供令牌")
+		return nil, errors.New("no token provided")
 	}
 	token, err = CacheGetTokenByKey(key)
 	if err == nil {
 		if token.Status == common.TokenStatusExhausted {
-			return nil, errors.New("该令牌额度已用尽")
+			return nil, errors.New("token quota has been reached")
 		} else if token.Status == common.TokenStatusExpired {
-			return nil, errors.New("该令牌已过期")
+			return nil, errors.New("token expired")
 		}
 		if token.Status != common.TokenStatusEnabled {
-			return nil, errors.New("该令牌状态不可用")
+			return nil, errors.New("token is disabled")
 		}
 		if token.ExpiredTime != -1 && token.ExpiredTime < common.GetTimestamp() {
 			if !common.RedisEnabled {
@@ -56,7 +56,7 @@ func ValidateUserToken(key string) (token *Token, err error) {
 					common.SysError("failed to update token status" + err.Error())
 				}
 			}
-			return nil, errors.New("该令牌已过期")
+			return nil, errors.New("token expired")
 		}
 		if !token.UnlimitedQuota && token.RemainQuota <= 0 {
 			if !common.RedisEnabled {
@@ -67,11 +67,11 @@ func ValidateUserToken(key string) (token *Token, err error) {
 					common.SysError("failed to update token status" + err.Error())
 				}
 			}
-			return nil, errors.New("该令牌额度已用尽")
+			return nil, errors.New("token quota has been reached")
 		}
 		return token, nil
 	}
-	return nil, errors.New("无效的令牌")
+	return nil, errors.New("invalid token")
 }
 
 func GetTokenByIds(id int, userId int) (*Token, error) {
@@ -133,7 +133,7 @@ func DeleteTokenById(id int, userId int) (err error) {
 
 func IncreaseTokenQuota(id int, quota int) (err error) {
 	if quota < 0 {
-		return errors.New("quota 不能为负数！")
+		return errors.New("quota cannot be a negative number")
 	}
 	if common.BatchUpdateEnabled {
 		addNewRecord(BatchUpdateTypeTokenQuota, id, quota)
@@ -155,7 +155,7 @@ func increaseTokenQuota(id int, quota int) (err error) {
 
 func DecreaseTokenQuota(id int, quota int) (err error) {
 	if quota < 0 {
-		return errors.New("quota 不能为负数！")
+		return errors.New("quota cannot be a negative number")
 	}
 	if common.BatchUpdateEnabled {
 		addNewRecord(BatchUpdateTypeTokenQuota, id, -quota)
@@ -177,21 +177,21 @@ func decreaseTokenQuota(id int, quota int) (err error) {
 
 func PreConsumeTokenQuota(tokenId int, quota int) (err error) {
 	if quota < 0 {
-		return errors.New("quota 不能为负数！")
+		return errors.New("quota cannot be a negative number")
 	}
 	token, err := GetTokenById(tokenId)
 	if err != nil {
 		return err
 	}
 	if !token.UnlimitedQuota && token.RemainQuota < quota {
-		return errors.New("令牌额度不足")
+		return errors.New("insufficient token balance")
 	}
 	userQuota, err := GetUserQuota(token.UserId)
 	if err != nil {
 		return err
 	}
 	if userQuota < quota {
-		return errors.New("用户额度不足")
+		return errors.New("insufficient user balance")
 	}
 	quotaTooLow := userQuota >= common.QuotaRemindThreshold && userQuota-quota < common.QuotaRemindThreshold
 	noMoreQuota := userQuota-quota <= 0
@@ -201,14 +201,14 @@ func PreConsumeTokenQuota(tokenId int, quota int) (err error) {
 			if err != nil {
 				common.SysError("failed to fetch user email: " + err.Error())
 			}
-			prompt := "您的额度即将用尽"
+			prompt := "Your quota is about to be exhausted"
 			if noMoreQuota {
-				prompt = "您的额度已用尽"
+				prompt = "Your quota has been fully utilized."
 			}
 			if email != "" {
-				topUpLink := fmt.Sprintf("%s/topup", common.ServerAddress)
+				//topUpLink := fmt.Sprintf("%s/topup", common.ServerAddress)
 				err = common.SendEmail(prompt, email,
-					fmt.Sprintf("%s，当前剩余额度为 %d，为了不影响您的使用，请及时充值。<br/>充值链接：<a href='%s'>%s</a>", prompt, userQuota, topUpLink, topUpLink))
+					fmt.Sprintf("%s, the current remaining quota is %d. To avoid any disruption to your usage, please recharge in a timely manner.", prompt, userQuota))
 				if err != nil {
 					common.SysError("failed to send email" + err.Error())
 				}

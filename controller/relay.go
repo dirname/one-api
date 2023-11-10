@@ -248,7 +248,7 @@ func Relay(c *gin.Context) {
 			} else {
 				baseURL := channel.GetBaseURL()
 				if err.StatusCode == http.StatusTooManyRequests {
-					err.OpenAIError.Message = "当前分组上游负载已饱和，请稍后再试"
+					err.OpenAIError.Message = "The current service node is overloaded. Please try again later."
 				}
 				err.OpenAIError.Message = common.MessageWithRequestId(err.OpenAIError.Message, requestId)
 				err.OpenAIError = OpenAIError{
@@ -310,6 +310,9 @@ func replaceUpstreamInfo(info, base string, id int) string {
 	if len(match) > 0 {
 		info = fmt.Sprintf("当前服务节点下模型 %s 暂不可用，请更换模型", match[2])
 	}
+
+	re = regexp.MustCompile(`( )?\(request id: [^\)]+\)( )?`)
+	re.ReplaceAllString(info, "")
 
 	return info
 }
