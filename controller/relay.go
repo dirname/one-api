@@ -18,6 +18,19 @@ type Message struct {
 	Name    *string `json:"name,omitempty"`
 }
 
+type VisionMessage struct {
+	Role    string `json:"role"`
+	Content []struct {
+		Type     string `json:"type"`
+		Text     string `json:"text,omitempty"`
+		ImageURL struct {
+			URL    string `json:"url"`
+			Detail string `json:"detail"`
+		} `json:"image_url,omitempty"`
+	} `json:"content"`
+	Name *string `json:"name,omitempty"`
+}
+
 const (
 	RelayModeUnknown = iota
 	RelayModeChatCompletions
@@ -44,6 +57,21 @@ type GeneralOpenAIRequest struct {
 	Instruction string    `json:"instruction,omitempty"`
 	Size        string    `json:"size,omitempty"`
 	Functions   any       `json:"functions,omitempty"`
+}
+
+type VisionOpenAIRequest struct {
+	Model       string          `json:"model,omitempty"`
+	Messages    []VisionMessage `json:"messages,omitempty"`
+	Prompt      any             `json:"prompt,omitempty"`
+	Stream      bool            `json:"stream,omitempty"`
+	MaxTokens   int             `json:"max_tokens,omitempty"`
+	Temperature float64         `json:"temperature,omitempty"`
+	TopP        float64         `json:"top_p,omitempty"`
+	N           int             `json:"n,omitempty"`
+	Input       any             `json:"input,omitempty"`
+	Instruction string          `json:"instruction,omitempty"`
+	Size        string          `json:"size,omitempty"`
+	Functions   any             `json:"functions,omitempty"`
 }
 
 func (r GeneralOpenAIRequest) ParseInput() []string {
@@ -195,7 +223,11 @@ func Relay(c *gin.Context) {
 	case RelayModeAudio:
 		err = relayAudioHelper(c, relayMode)
 	default:
-		err = relayTextHelper(c, relayMode)
+		if common.UnmarshalBodyIsVersionModel(c) {
+			err = relayVisionHelper(c, relayMode)
+		} else {
+			err = relayTextHelper(c, relayMode)
+		}
 	}
 	if err != nil {
 		requestId := c.GetString(common.RequestIdKey)
