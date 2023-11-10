@@ -14,7 +14,6 @@ import (
 )
 
 func relayImageHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
-	imageModel := "dall-e-2"
 	requestSize := "1024x1024"
 
 	tokenId := c.GetInt("token_id")
@@ -34,7 +33,8 @@ func relayImageHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode 
 	}
 
 	// Model validation
-	if imageRequest.Model != "" || imageRequest.Model != "dall-e-3" {
+	imageModel := imageRequest.Model
+	if imageRequest.Model != "" && imageRequest.Model != "dall-e-3" {
 		imageModel = "dall-e-2"
 	}
 
@@ -91,7 +91,11 @@ func relayImageHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode 
 			sizeRatio = ratio
 
 			if imageRequest.Quality == "hd" {
-				sizeRatio = ratio * 2
+				if requestSize == "1024x1024" {
+					sizeRatio = ratio * 2
+				} else {
+					sizeRatio = ratio * 1.5
+				}
 			}
 		}
 	}
