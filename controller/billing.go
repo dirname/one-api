@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"one-api/common"
 	"one-api/model"
+	"time"
 )
 
 func GetSubscription(c *gin.Context) {
@@ -59,11 +60,18 @@ func GetSubscription(c *gin.Context) {
 func GetUsage(c *gin.Context) {
 	var quota int
 	var err error
-	var token *model.Token
+	//var token *model.Token
 	if common.DisplayTokenStatEnabled {
-		tokenId := c.GetInt("token_id")
-		token, err = model.GetTokenById(tokenId)
-		quota = token.UsedQuota
+		userId := c.GetInt("id")
+		from := c.Query("start_date")
+		to := c.Query("end_date")
+		var startDate, endDate time.Time
+		startDate, err = time.Parse("2006-01-02", from)
+		endDate, err = time.Parse("2006-01-02", to)
+		quota, err = model.GetPeriodQuotaSum(userId, startDate.Unix(), endDate.Unix())
+		//tokenId := c.GetInt("token_id")
+		//token, err = model.GetTokenById(tokenId)
+		//quota = token.UsedQuota
 	} else {
 		userId := c.GetInt("id")
 		quota, err = model.GetUserUsedQuota(userId)
