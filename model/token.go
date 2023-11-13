@@ -175,6 +175,15 @@ func decreaseTokenQuota(id int, quota int) (err error) {
 	return err
 }
 
+func recordTokenUsedQuota(id int, quota int) (err error) {
+	err = DB.Model(&Token{}).Where("id = ?", id).Updates(
+		map[string]interface{}{
+			"used_quota": gorm.Expr("used_quota + ?", quota),
+		},
+	).Error
+	return err
+}
+
 func PreConsumeTokenQuota(tokenId int, quota int) (err error) {
 	if quota < 0 {
 		return errors.New("quota cannot be a negative number")
@@ -242,6 +251,10 @@ func PostConsumeTokenQuota(tokenId int, quota int) (err error) {
 			err = IncreaseTokenQuota(tokenId, -quota)
 		}
 		if err != nil {
+			return err
+		}
+	} else {
+		if err := recordTokenUsedQuota(tokenId, quota); err != nil {
 			return err
 		}
 	}
