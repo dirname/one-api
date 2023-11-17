@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"io"
 	"net/http"
 	"one-api/common"
 	"one-api/model"
@@ -45,13 +46,13 @@ func testChannel(channel *model.Channel, request ChatRequest) (err error, openai
 	if channel.Type == common.ChannelTypeAzure {
 		requestURL = fmt.Sprintf("%s/openai/deployments/%s/chat/completions?api-version=2023-03-15-preview", channel.GetBaseURL(), request.Model)
 	} else {
-		if channel.GetBaseURL() != "" {
-			requestURL = channel.GetBaseURL()
-		}
-		requestURL += "/v1/chat/completions"
+		requestURL = getFullRequestURL(channel.GetBaseURL(), "/v1/chat/completions", channel.Type)
+		//if channel.GetBaseURL() != "" {
+		//	requestURL = channel.GetBaseURL()
+		//}
+		//requestURL += "/v1/chat/completions"
 	}
 	// for Cloudflare AI gateway: https://github.com/songquanpeng/one-api/pull/639
-	requestURL = strings.Replace(requestURL, "/v1/v1", "/v1", 1)
 
 	jsonData, err := json.Marshal(request)
 	if err != nil {
@@ -73,14 +74,18 @@ func testChannel(channel *model.Channel, request ChatRequest) (err error, openai
 	}
 	defer resp.Body.Close()
 	var response TextResponse
-	err = json.NewDecoder(resp.Body).Decode(&response)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err, nil
+	}
+	err = json.Unmarshal(body, &response)
 	if err != nil {
 		if resp.StatusCode == http.StatusOK {
 			if strings.HasPrefix(resp.Header.Get("Content-Type"), "text/event-stream") || resp.Header.Get("Transfer-Encoding") == "chunked" {
 				return nil, nil
 			}
 		}
-		return err, nil
+		return fmt.Errorf("%v resp: %s\n", err, string(body)), nil
 	}
 	if response.Usage.CompletionTokens == 0 {
 		return errors.New(fmt.Sprintf("type %s, code %v, message %s", response.Error.Type, response.Error.Code, response.Error.Message)), &response.Error
