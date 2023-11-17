@@ -46,13 +46,11 @@ func testChannel(channel *model.Channel, request ChatRequest) (err error, openai
 	if channel.Type == common.ChannelTypeAzure {
 		requestURL = fmt.Sprintf("%s/openai/deployments/%s/chat/completions?api-version=2023-03-15-preview", channel.GetBaseURL(), request.Model)
 	} else {
-		requestURL = getFullRequestURL(channel.GetBaseURL(), "/v1/chat/completions", channel.Type)
-		//if channel.GetBaseURL() != "" {
-		//	requestURL = channel.GetBaseURL()
-		//}
-		//requestURL += "/v1/chat/completions"
+		if baseURL := channel.GetBaseURL(); len(baseURL) > 0 {
+			requestURL = baseURL
+		}
+		requestURL = getFullRequestURL(requestURL, "/v1/chat/completions", channel.Type)
 	}
-	// for Cloudflare AI gateway: https://github.com/songquanpeng/one-api/pull/639
 
 	jsonData, err := json.Marshal(request)
 	if err != nil {
@@ -85,7 +83,7 @@ func testChannel(channel *model.Channel, request ChatRequest) (err error, openai
 				return nil, nil
 			}
 		}
-		return fmt.Errorf("%v resp: %s\n", err, string(body)), nil
+		return fmt.Errorf("Error: %s\nResp body: %s", err, body), nil
 	}
 	if response.Usage.CompletionTokens == 0 {
 		return errors.New(fmt.Sprintf("type %s, code %v, message %s", response.Error.Type, response.Error.Code, response.Error.Message)), &response.Error

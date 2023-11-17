@@ -2,6 +2,7 @@ package controller
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -17,6 +18,7 @@ import (
 	"math"
 	"net/http"
 	"one-api/common"
+	"one-api/model"
 	"strconv"
 	"strings"
 )
@@ -153,11 +155,14 @@ func getImageInfo(url string) (*imgInfo, error) {
 	var isWebp bool
 	var data []byte
 	var err error
-	if strings.HasPrefix(url, "http") {
-		isWebp, data, err = getImageFromURL(url)
-	} else if strings.HasPrefix("data:image/", url) {
+	switch {
+	case strings.HasPrefix(url, "data:image/"):
 		isWebp, data, err = getImageFromBase64(url)
-	} else {
+		break
+	case strings.HasPrefix(url, "http"):
+		isWebp, data, err = getImageFromURL(url)
+		break
+	default:
 		return nil, errors.New("invalid image url")
 	}
 
@@ -345,4 +350,21 @@ func getFullRequestURL(baseURL string, requestURL string, channelType int) strin
 		}
 	}
 	return fullRequestURL
+}
+
+func postConsumeQuota(ctx context.Context, tokenId int, quota int, userId int, channelId int, modelRatio float64, groupRatio float64, modelName string, tokenName string) {
+	err := model.PostConsumeTokenQuota(tokenId, quota)
+	if err != nil {
+		common.SysError("error consuming token remain quota: " + err.Error())
+	}
+	err = model.CacheUpdateUserQuota(userId)
+	if err != nil {
+		common.SysError("error update user quota cache: " + err.Error())
+	}
+	if quota != 0 {
+		logContent := fmt.Sprintf("Model multiplier %.2f, basic multiplier %.2f", modelRatio, groupRatio)
+		model.RecordConsumeLog(ctx, userId, channelId, 0, 0, modelName, tokenName, quota, logContent)
+		model.UpdateUserUsedQuotaAndRequestCount(userId, quota)
+		model.UpdateChannelUsedQuota(channelId, quota)
+	}
 }
