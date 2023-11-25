@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"one-api/common"
@@ -18,17 +19,20 @@ type Message struct {
 	Name    *string `json:"name,omitempty"`
 }
 
+type VisionContent struct {
+	Type     string `json:"type"`
+	Text     string `json:"text,omitempty"`
+	ImageURL struct {
+		URL    string `json:"url"`
+		Detail string `json:"detail"`
+	} `json:"image_url,omitempty"`
+}
+
+// TODO: modify this ....
 type VisionMessage struct {
-	Role    string `json:"role"`
-	Content []struct {
-		Type     string `json:"type"`
-		Text     string `json:"text,omitempty"`
-		ImageURL struct {
-			URL    string `json:"url"`
-			Detail string `json:"detail"`
-		} `json:"image_url,omitempty"`
-	} `json:"content"`
-	Name *string `json:"name,omitempty"`
+	Role    string          `json:"role"`
+	Content json.RawMessage `json:"content"`
+	Name    *string         `json:"name,omitempty"`
 }
 
 const (

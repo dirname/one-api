@@ -136,12 +136,14 @@ func (image imgInfo) calculateTokenCost() int {
 	}
 
 	// Scale down to shortest side is 768px
-	if image.width < image.height {
-		image.height = int(float64(image.height) / float64(image.width) * float64(minSize))
-		image.width = minSize
-	} else {
-		image.width = int(float64(image.width) / float64(image.height) * float64(minSize))
-		image.height = minSize
+	if image.width > minSize || image.height > minSize {
+		if image.width < image.height {
+			image.height = int(float64(image.height) / float64(image.width) * float64(minSize))
+			image.width = minSize
+		} else {
+			image.width = int(float64(image.width) / float64(image.height) * float64(minSize))
+			image.height = minSize
+		}
 	}
 
 	// Calculate number of 512px tiles needed
@@ -239,21 +241,34 @@ func countVisionTokenMessage(messages []VisionMessage) (int, error) {
 			tokenNum += tokensPerName
 			tokenNum += getTokenNum(tokenEncoder, *message.Name)
 		}
-		for _, content := range message.Content {
-			tokenNum += getTokenNum(tokenEncoder, content.Text)
-			if len(content.ImageURL.URL) > 0 {
-				img, err := getImageInfo(content.ImageURL.URL)
-				if err != nil {
-					return 0, fmt.Errorf("failed to get %s info", content.ImageURL.URL)
-				}
-				detail := "auto"
-				if len(content.ImageURL.Detail) > 0 {
-					detail = content.ImageURL.Detail
-				}
-				img.detail = detail
 
-				tokenNum += img.calculateTokenCost()
+		content, err := message.Content.MarshalJSON()
+		if err != nil {
+			return 0, fmt.Errorf("failed to marshal content")
+		}
+
+		visions := make([]VisionContent, 0)
+		err = json.Unmarshal(content, &visions)
+
+		if err == nil {
+			for _, content := range visions {
+				tokenNum += getTokenNum(tokenEncoder, content.Text)
+				if len(content.ImageURL.URL) > 0 {
+					img, err := getImageInfo(content.ImageURL.URL)
+					if err != nil {
+						return 0, fmt.Errorf("failed to get %s info", content.ImageURL.URL)
+					}
+					detail := "auto"
+					if len(content.ImageURL.Detail) > 0 {
+						detail = content.ImageURL.Detail
+					}
+					img.detail = detail
+
+					tokenNum += img.calculateTokenCost()
+				}
 			}
+		} else {
+			tokenNum += getTokenNum(tokenEncoder, string(content))
 		}
 	}
 	tokenNum += 3 // Every reply is primed with <|start|>assistant<|message|>
