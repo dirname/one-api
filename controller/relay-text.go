@@ -413,37 +413,36 @@ func relayTextHelper(c *gin.Context, relayMode int) *OpenAIErrorWithStatusCode {
 	defer func(ctx context.Context) {
 		// c.Writer.Flush()
 		go func() {
-			if consumeQuota {
-				quota := 0
-				completionRatio := common.GetCompletionRatio(textRequest.Model)
-				promptTokens = textResponse.Usage.PromptTokens
-				completionTokens = textResponse.Usage.CompletionTokens
-				quota = int(math.Ceil((float64(promptTokens) + float64(completionTokens)*completionRatio) * ratio))
-				if ratio != 0 && quota <= 0 {
-					quota = 1
-				}
-				totalTokens := promptTokens + completionTokens
-				if totalTokens == 0 {
-					// in this case, must be some error happened
-					// we cannot just return, because we may have to return the pre-consumed quota
-					quota = 0
-				}
-				quotaDelta := quota - preConsumedQuota
-				err := model.PostConsumeTokenQuota(tokenId, quotaDelta)
-				if err != nil {
-					common.LogError(ctx, "error consuming token remain quota: "+err.Error())
-				}
-				err = model.CacheUpdateUserQuota(userId)
-				if err != nil {
-					common.LogError(ctx, "error update user quota cache: "+err.Error())
-				}
-				if quota != 0 {
-					logContent := fmt.Sprintf("Model multiplier %.2f, basic multiplier %.2f", modelRatio, groupRatio)
-					model.RecordConsumeLog(ctx, userId, channelId, promptTokens, completionTokens, textRequest.Model, tokenName, quota, logContent)
-					model.UpdateUserUsedQuotaAndRequestCount(userId, quota)
-					model.UpdateChannelUsedQuota(channelId, quota)
-				}
+			quota := 0
+			completionRatio := common.GetCompletionRatio(textRequest.Model)
+			promptTokens = textResponse.Usage.PromptTokens
+			completionTokens = textResponse.Usage.CompletionTokens
+			quota = int(math.Ceil((float64(promptTokens) + float64(completionTokens)*completionRatio) * ratio))
+			if ratio != 0 && quota <= 0 {
+				quota = 1
 			}
+			totalTokens := promptTokens + completionTokens
+			if totalTokens == 0 {
+				// in this case, must be some error happened
+				// we cannot just return, because we may have to return the pre-consumed quota
+				quota = 0
+			}
+			quotaDelta := quota - preConsumedQuota
+			err := model.PostConsumeTokenQuota(tokenId, quotaDelta)
+			if err != nil {
+				common.LogError(ctx, "error consuming token remain quota: "+err.Error())
+			}
+			err = model.CacheUpdateUserQuota(userId)
+			if err != nil {
+				common.LogError(ctx, "error update user quota cache: "+err.Error())
+			}
+			if quota != 0 {
+				logContent := fmt.Sprintf("Model multiplier %.2f, basic multiplier %.2f", modelRatio, groupRatio)
+				model.RecordConsumeLog(ctx, userId, channelId, promptTokens, completionTokens, textRequest.Model, tokenName, quota, logContent)
+				model.UpdateUserUsedQuotaAndRequestCount(userId, quota)
+				model.UpdateChannelUsedQuota(channelId, quota)
+			}
+
 		}()
 	}(c.Request.Context())
 	switch apiType {
