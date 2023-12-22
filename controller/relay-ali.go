@@ -86,7 +86,7 @@ func requestOpenAI2Ali(request GeneralOpenAIRequest) *AliChatRequest {
 	for i := 0; i < len(request.Messages); i++ {
 		message := request.Messages[i]
 		messages = append(messages, AliMessage{
-			Content: message.StringContent(),
+			Content: message.Content,
 			Role:    strings.ToLower(message.Role),
 		})
 	}
