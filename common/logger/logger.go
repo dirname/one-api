@@ -103,10 +103,10 @@ func FatalLog(v ...any) {
 	os.Exit(1)
 }
 
-func LogQuota(quota int) string {
-	if DisplayInCurrencyEnabled {
-		return fmt.Sprintf("＄%.6f Quota", float64(quota)/QuotaPerUnit)
-	} else {
-		return fmt.Sprintf("%d Point Quota", quota)
-	}
-}
+//func LogQuota(quota int) string {
+//	if DisplayInCurrencyEnabled {
+//		return fmt.Sprintf("＄%.6f Quota", float64(quota)/QuotaPerUnit)
+//	} else {
+//		return fmt.Sprintf("%d Point Quota", quota)
+//	}
+//}

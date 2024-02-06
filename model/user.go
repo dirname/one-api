@@ -18,7 +18,7 @@ type User struct {
 	Username         string `json:"username" gorm:"unique;index" validate:"max=12"`
 	Password         string `json:"password" gorm:"not null;" validate:"min=8,max=20"`
 	DisplayName      string `json:"display_name" gorm:"index" validate:"max=20"`
-	Role             int    `json:"role" gorm:"type:int;default:1"`   // admin, util
+	Role             int    `json:"role" gorm:"type:int;default:1"`   // admin, common
 	Status           int    `json:"status" gorm:"type:int;default:1"` // enabled, disabled
 	Email            string `json:"email" gorm:"index" validate:"max=50"`
 	GitHubId         string `json:"github_id" gorm:"column:github_id;index"`
@@ -100,16 +100,16 @@ func (user *User) Insert(inviterId int) error {
 		return result.Error
 	}
 	if config.QuotaForNewUser > 0 {
-		RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("新用户注册赠送 %s", common.LogQuota(config.QuotaForNewUser)))
+		RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("New users are bestowed with a %s upon registration", common.LogQuota(config.QuotaForNewUser)))
 	}
 	if inviterId != 0 {
 		if config.QuotaForInvitee > 0 {
 			_ = IncreaseUserQuota(user.Id, config.QuotaForInvitee)
-			RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("使用邀请码赠送 %s", common.LogQuota(config.QuotaForInvitee)))
+			RecordLog(user.Id, LogTypeSystem, fmt.Sprintf("Utilizing an invitation code bequeaths %s", common.LogQuota(config.QuotaForInvitee)))
 		}
 		if config.QuotaForInviter > 0 {
 			_ = IncreaseUserQuota(inviterId, config.QuotaForInviter)
-			RecordLog(inviterId, LogTypeSystem, fmt.Sprintf("邀请用户赠送 %s", common.LogQuota(config.QuotaForInviter)))
+			RecordLog(inviterId, LogTypeSystem, fmt.Sprintf("Inviting users grants %s", common.LogQuota(config.QuotaForInviter)))
 		}
 	}
 	return nil

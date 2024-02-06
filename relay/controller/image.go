@@ -184,7 +184,7 @@ func RelayImageHelper(c *gin.Context, relayMode int) *openai.ErrorWithStatusCode
 		}
 		if quota != 0 {
 			tokenName := c.GetString("token_name")
-			logContent := fmt.Sprintf("模型倍率 %.2f，分组倍率 %.2f", modelRatio, groupRatio)
+			logContent := fmt.Sprintf("Model  multiplier %.2f, basic multiplier %.2f", modelRatio, groupRatio)
 			model.RecordConsumeLog(ctx, userId, channelId, 0, 0, imageModel, tokenName, quota, logContent)
 			model.UpdateUserUsedQuotaAndRequestCount(userId, quota)
 			channelId := c.GetInt("channel_id")

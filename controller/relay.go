@@ -6,12 +6,15 @@ import (
 	"github.com/songquanpeng/one-api/common/config"
 	"github.com/songquanpeng/one-api/common/helper"
 	"github.com/songquanpeng/one-api/common/logger"
+	"github.com/songquanpeng/one-api/model"
 	"github.com/songquanpeng/one-api/relay/channel/openai"
 	"github.com/songquanpeng/one-api/relay/constant"
 	"github.com/songquanpeng/one-api/relay/controller"
 	"github.com/songquanpeng/one-api/relay/util"
 	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 )
 
 // https://platform.openai.com/docs/api-reference/chat
@@ -32,6 +35,14 @@ func Relay(c *gin.Context) {
 		err = controller.RelayTextHelper(c)
 	}
 	if err != nil {
+		channelId := c.GetInt("channel_id")
+		channel, _err := model.GetChannelById(channelId, false)
+		if _err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Not found for channel",
+			})
+		}
+		baseURL := channel.GetBaseURL()
 		requestId := c.GetString(logger.RequestIdKey)
 		retryTimesStr := c.Query("retry")
 		retryTimes, _ := strconv.Atoi(retryTimesStr)
@@ -44,12 +55,12 @@ func Relay(c *gin.Context) {
 			if err.StatusCode == http.StatusTooManyRequests {
 				err.Error.Message = "The current service node is overloaded. Please try again later."
 			}
-			err.Error.Message = helper.MessageWithRequestId(err.Error.Message, requestId)
+			err.Error.Message = helper.MessageWithRequestId(replaceUpstreamInfo(err.Error.Message, baseURL, channelId, false), requestId)
+			err.Error.Type = replaceUpstreamInfo(err.Error.Type, baseURL, channelId, true)
 			c.JSON(err.StatusCode, gin.H{
 				"error": err.Error,
 			})
 		}
-		channelId := c.GetInt("channel_id")
 		logger.Error(c.Request.Context(), fmt.Sprintf("relay error (channel #%d): %s", channelId, err.Message))
 		// https://platform.openai.com/docs/guides/error-codes/api-errors
 		if util.ShouldDisableChannel(&err.Error, err.StatusCode) {
@@ -82,4 +93,29 @@ func RelayNotFound(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{
 		"error": err,
 	})
+}
+
+func replaceUpstreamInfo(info, base string, id int, isType bool) string {
+	pattern := regexp.MustCompile(`//([\w.-]+)`)
+	base = strings.ReplaceAll(pattern.FindString(base), `//`, "")
+	key := []string{base, "one-api", "one_api", "ONE_API", "ONE-API", "shell-api", "shell_api", "SHELL_API", "SHELL-API"}
+	replace := fmt.Sprintf("api.openai.com")
+	if isType {
+		replace = fmt.Sprintf("[%d] upstream", id)
+	}
+	for _, k := range key {
+		info = strings.ReplaceAll(info, k, replace)
+	}
+
+	re := regexp.MustCompile(`当前分组 (.*?) 下对于模型 (.*?) `)
+	match := re.FindStringSubmatch(info)
+
+	if len(match) > 0 {
+		info = fmt.Sprintf("The model '%s' under the current service node is unavailable; please switch to a different model", match[2])
+	}
+
+	re = regexp.MustCompile(`( )?\(request id: [^\)]+\)( )?`)
+	re.ReplaceAllString(info, "")
+
+	return info
 }
