@@ -6,6 +6,7 @@ import (
 	"github.com/songquanpeng/one-api/common/logger"
 	"github.com/songquanpeng/one-api/model"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -65,6 +66,15 @@ func Distribute() func(c *gin.Context) {
 				if modelRequest.Model == "" {
 					modelRequest.Model = "whisper-1"
 				}
+			}
+			// Support GPTs
+			re := regexp.MustCompile(`gpt-4-gizmo-g-[a-zA-Z0-9]{9}`)
+			if modelRequest.Model == "gpt-4-gizmo-*" || modelRequest.Model == "gpt-4-gizmo-g" || (strings.HasPrefix(modelRequest.Model, "gpt-4-gizmo-g") && !re.MatchString(modelRequest.Model)) {
+				message := "Please specify a specific model, GPTs share links typified by strings such as 'g-xxxxxxxxx', featuring an 11-character string that include 'g-'. The complete model name appears as follows: 'gpt-4-gizmo-g-xxxxxxxxx'."
+				abortWithMessage(c, http.StatusServiceUnavailable, message)
+				return
+			} else if strings.HasPrefix(modelRequest.Model, "gpt-4-gizmo-g") {
+				modelRequest.Model = "gpt-4-gizmo-*"
 			}
 			channel, err = model.CacheGetRandomSatisfiedChannel(userGroup, modelRequest.Model)
 			if err != nil {

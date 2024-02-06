@@ -4,19 +4,20 @@ WORKDIR /web
 COPY ./VERSION .
 COPY ./web .
 
-WORKDIR /web/default
-RUN npm install
-RUN DISABLE_ESLINT_PLUGIN='true' REACT_APP_VERSION=$(cat VERSION) npm run build
+#WORKDIR /web/default
+#RUN npm install --registry https://registry.npmmirror.com
+#RUN DISABLE_ESLINT_PLUGIN='true' REACT_APP_VERSION=$(cat ../VERSION) npm run build
 
 WORKDIR /web/berry
-RUN npm install
-RUN DISABLE_ESLINT_PLUGIN='true' REACT_APP_VERSION=$(cat VERSION) npm run build
+RUN npm install --registry https://registry.npmmirror.com
+RUN DISABLE_ESLINT_PLUGIN='true' REACT_APP_VERSION=$(cat ../VERSION) npm run build
 
 FROM golang AS builder2
 
 ENV GO111MODULE=on \
     CGO_ENABLED=1 \
-    GOOS=linux
+    GOOS=linux \
+    GOPROXY=https://goproxy.cn,direct
 
 WORKDIR /build
 ADD go.mod go.sum ./
@@ -27,6 +28,7 @@ RUN go build -ldflags "-s -w -X 'one-api/common.Version=$(cat VERSION)' -extldfl
 
 FROM alpine
 
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
 RUN apk update \
     && apk upgrade \
     && apk add --no-cache ca-certificates tzdata \

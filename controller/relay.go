@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/songquanpeng/one-api/common"
 	"github.com/songquanpeng/one-api/common/config"
 	"github.com/songquanpeng/one-api/common/helper"
 	"github.com/songquanpeng/one-api/common/logger"
@@ -55,8 +56,8 @@ func Relay(c *gin.Context) {
 			if err.StatusCode == http.StatusTooManyRequests {
 				err.Error.Message = "The current service node is overloaded. Please try again later."
 			}
-			err.Error.Message = helper.MessageWithRequestId(replaceUpstreamInfo(err.Error.Message, baseURL, channelId, false), requestId)
-			err.Error.Type = replaceUpstreamInfo(err.Error.Type, baseURL, channelId, true)
+			err.Error.Message = helper.MessageWithRequestId(replaceUpstreamInfo(err.Error.Message, baseURL, channelId, channel.Type, false), requestId)
+			err.Error.Type = replaceUpstreamInfo(err.Error.Type, baseURL, channelId, channel.Type, true)
 			c.JSON(err.StatusCode, gin.H{
 				"error": err.Error,
 			})
@@ -95,11 +96,15 @@ func RelayNotFound(c *gin.Context) {
 	})
 }
 
-func replaceUpstreamInfo(info, base string, id int, isType bool) string {
+func replaceUpstreamInfo(info, base string, id, channelType int, isType bool) string {
 	pattern := regexp.MustCompile(`//([\w.-]+)`)
 	base = strings.ReplaceAll(pattern.FindString(base), `//`, "")
-	key := []string{base, "one-api", "one_api", "ONE_API", "ONE-API", "shell-api", "shell_api", "SHELL_API", "SHELL-API"}
-	replace := fmt.Sprintf("api.openai.com")
+	key := []string{"one-api", "one_api", "ONE_API", "ONE-API", "shell-api", "shell_api", "SHELL_API", "SHELL-API"}
+	if len(base) > 0 {
+		key = append(key, base)
+	}
+	replace := common.ChannelBaseURLs[channelType]
+	replace = strings.ReplaceAll(replace, "https://", "")
 	if isType {
 		replace = fmt.Sprintf("[%d] upstream", id)
 	}
@@ -115,7 +120,7 @@ func replaceUpstreamInfo(info, base string, id int, isType bool) string {
 	}
 
 	re = regexp.MustCompile(`( )?\(request id: [^\)]+\)( )?`)
-	re.ReplaceAllString(info, "")
+	info = re.ReplaceAllString(info, "")
 
 	return info
 }

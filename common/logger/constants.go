@@ -1,7 +1,7 @@
 package logger
 
 const (
-	RequestIdKey = "X-Oneapi-Request-Id"
+	RequestIdKey = "X-PuerHub-AI-Request-Id"
 )
 
 var LogDir string

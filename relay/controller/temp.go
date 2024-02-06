@@ -74,11 +74,11 @@ func GetRequestURL(requestURL string, meta *util.RelayMeta, textRequest *openai.
 		}
 		fullRequestURL = fmt.Sprintf("%s/%s/models/%s:%s", meta.BaseURL, version, textRequest.Model, action)
 	case constant.APITypeZhipu:
-		method := "invoke"
-		if textRequest.Stream {
-			method = "sse-invoke"
-		}
-		fullRequestURL = fmt.Sprintf("https://open.bigmodel.cn/api/paas/v3/model-api/%s/%s", textRequest.Model, method)
+		//method := "invoke"
+		//if textRequest.Stream {
+		//	method = "sse-invoke"
+		//}
+		fullRequestURL = fmt.Sprintf("https://open.bigmodel.cn/api/paas/v4/chat/completions")
 	case constant.APITypeAli:
 		fullRequestURL = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
 		if meta.Mode == constant.RelayModeEmbeddings {
@@ -140,13 +140,13 @@ func GetRequestBody(c *gin.Context, textRequest openai.GeneralOpenAIRequest, isM
 			return nil, err
 		}
 		requestBody = bytes.NewBuffer(jsonStr)
-	case constant.APITypeZhipu:
-		zhipuRequest := zhipu.ConvertRequest(textRequest)
-		jsonStr, err := json.Marshal(zhipuRequest)
-		if err != nil {
-			return nil, err
-		}
-		requestBody = bytes.NewBuffer(jsonStr)
+	//case constant.APITypeZhipu:
+	//	zhipuRequest := zhipu.ConvertRequest(textRequest)
+	//	jsonStr, err := json.Marshal(textRequest)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//	requestBody = bytes.NewBuffer(jsonStr)
 	case constant.APITypeAli:
 		var jsonStr []byte
 		var err error
@@ -282,9 +282,9 @@ func DoResponse(c *gin.Context, textRequest *openai.GeneralOpenAIRequest, resp *
 		}
 	case constant.APITypeZhipu:
 		if isStream {
-			err, usage = zhipu.StreamHandler(c, resp)
+			err, responseText = openai.StreamHandler(c, resp, relayMode)
 		} else {
-			err, usage = zhipu.Handler(c, resp)
+			err, usage = openai.Handler(c, resp, promptTokens, textRequest.Model)
 		}
 	case constant.APITypeAli:
 		if isStream {
