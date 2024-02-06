@@ -1,7 +1,9 @@
 package model
 
 import (
-	"one-api/common"
+	"github.com/songquanpeng/one-api/common"
+	"github.com/songquanpeng/one-api/common/config"
+	"github.com/songquanpeng/one-api/common/logger"
 	"strconv"
 	"strings"
 	"time"
@@ -34,7 +36,6 @@ func InitOptionMap() {
 	common.OptionMap["TurnstileCheckEnabled"] = strconv.FormatBool(common.TurnstileCheckEnabled)
 	common.OptionMap["RegisterEnabled"] = strconv.FormatBool(common.RegisterEnabled)
 	common.OptionMap["AutomaticDisableChannelEnabled"] = strconv.FormatBool(common.AutomaticDisableChannelEnabled)
-	common.OptionMap["AutomaticEnableChannelEnabled"] = strconv.FormatBool(common.AutomaticEnableChannelEnabled)
 	common.OptionMap["ApproximateTokenEnabled"] = strconv.FormatBool(common.ApproximateTokenEnabled)
 	common.OptionMap["LogConsumeEnabled"] = strconv.FormatBool(common.LogConsumeEnabled)
 	common.OptionMap["DisplayInCurrencyEnabled"] = strconv.FormatBool(common.DisplayInCurrencyEnabled)
@@ -81,7 +82,7 @@ func loadOptionsFromDatabase() {
 	for _, option := range options {
 		err := updateOptionMap(option.Key, option.Value)
 		if err != nil {
-			common.SysError("failed to update option map: " + err.Error())
+			logger.SysError("failed to update option map: " + err.Error())
 		}
 	}
 }
@@ -89,7 +90,7 @@ func loadOptionsFromDatabase() {
 func SyncOptions(frequency int) {
 	for {
 		time.Sleep(time.Duration(frequency) * time.Second)
-		common.SysLog("syncing options from database")
+		logger.SysLog("syncing options from database")
 		loadOptionsFromDatabase()
 	}
 }
@@ -111,115 +112,104 @@ func UpdateOption(key string, value string) error {
 }
 
 func updateOptionMap(key string, value string) (err error) {
-	common.OptionMapRWMutex.Lock()
-	defer common.OptionMapRWMutex.Unlock()
-	common.OptionMap[key] = value
-	if strings.HasSuffix(key, "Permission") {
-		intValue, _ := strconv.Atoi(value)
-		switch key {
-		case "FileUploadPermission":
-			common.FileUploadPermission = intValue
-		case "FileDownloadPermission":
-			common.FileDownloadPermission = intValue
-		case "ImageUploadPermission":
-			common.ImageUploadPermission = intValue
-		case "ImageDownloadPermission":
-			common.ImageDownloadPermission = intValue
-		}
-	}
+	config.OptionMapRWMutex.Lock()
+	defer config.OptionMapRWMutex.Unlock()
+	config.OptionMap[key] = value
 	if strings.HasSuffix(key, "Enabled") {
 		boolValue := value == "true"
 		switch key {
 		case "PasswordRegisterEnabled":
-			common.PasswordRegisterEnabled = boolValue
+			config.PasswordRegisterEnabled = boolValue
 		case "PasswordLoginEnabled":
-			common.PasswordLoginEnabled = boolValue
+			config.PasswordLoginEnabled = boolValue
 		case "EmailVerificationEnabled":
-			common.EmailVerificationEnabled = boolValue
+			config.EmailVerificationEnabled = boolValue
 		case "GitHubOAuthEnabled":
-			common.GitHubOAuthEnabled = boolValue
+			config.GitHubOAuthEnabled = boolValue
 		case "WeChatAuthEnabled":
-			common.WeChatAuthEnabled = boolValue
+			config.WeChatAuthEnabled = boolValue
 		case "TurnstileCheckEnabled":
-			common.TurnstileCheckEnabled = boolValue
+			config.TurnstileCheckEnabled = boolValue
 		case "RegisterEnabled":
-			common.RegisterEnabled = boolValue
+			config.RegisterEnabled = boolValue
 		case "EmailDomainRestrictionEnabled":
-			common.EmailDomainRestrictionEnabled = boolValue
+			config.EmailDomainRestrictionEnabled = boolValue
 		case "AutomaticDisableChannelEnabled":
 			common.AutomaticDisableChannelEnabled = boolValue
-		case "AutomaticEnableChannelEnabled":
-			common.AutomaticEnableChannelEnabled = boolValue
 		case "ApproximateTokenEnabled":
-			common.ApproximateTokenEnabled = boolValue
+			config.ApproximateTokenEnabled = boolValue
 		case "LogConsumeEnabled":
-			common.LogConsumeEnabled = boolValue
+			config.LogConsumeEnabled = boolValue
 		case "DisplayInCurrencyEnabled":
-			common.DisplayInCurrencyEnabled = boolValue
+			config.DisplayInCurrencyEnabled = boolValue
 		case "DisplayTokenStatEnabled":
-			common.DisplayTokenStatEnabled = boolValue
+			config.DisplayTokenStatEnabled = boolValue
 		}
 	}
 	switch key {
 	case "EmailDomainWhitelist":
-		common.EmailDomainWhitelist = strings.Split(value, ",")
+		config.EmailDomainWhitelist = strings.Split(value, ",")
 	case "SMTPServer":
-		common.SMTPServer = value
+		config.SMTPServer = value
 	case "SMTPPort":
 		intValue, _ := strconv.Atoi(value)
-		common.SMTPPort = intValue
+		config.SMTPPort = intValue
 	case "SMTPAccount":
-		common.SMTPAccount = value
+		config.SMTPAccount = value
 	case "SMTPFrom":
-		common.SMTPFrom = value
+		config.SMTPFrom = value
 	case "SMTPToken":
-		common.SMTPToken = value
+		config.SMTPToken = value
 	case "ServerAddress":
-		common.ServerAddress = value
+		config.ServerAddress = value
 	case "GitHubClientId":
-		common.GitHubClientId = value
+		config.GitHubClientId = value
 	case "GitHubClientSecret":
-		common.GitHubClientSecret = value
+		config.GitHubClientSecret = value
 	case "Footer":
-		common.Footer = value
+		config.Footer = value
 	case "SystemName":
-		common.SystemName = value
+		config.SystemName = value
 	case "Logo":
-		common.Logo = value
+		config.Logo = value
 	case "WeChatServerAddress":
-		common.WeChatServerAddress = value
+		config.WeChatServerAddress = value
 	case "WeChatServerToken":
-		common.WeChatServerToken = value
+		config.WeChatServerToken = value
 	case "WeChatAccountQRCodeImageURL":
-		common.WeChatAccountQRCodeImageURL = value
+		config.WeChatAccountQRCodeImageURL = value
 	case "TurnstileSiteKey":
-		common.TurnstileSiteKey = value
+		config.TurnstileSiteKey = value
 	case "TurnstileSecretKey":
-		common.TurnstileSecretKey = value
+		config.TurnstileSecretKey = value
 	case "QuotaForNewUser":
-		common.QuotaForNewUser, _ = strconv.Atoi(value)
+		config.QuotaForNewUser, _ = strconv.Atoi(value)
 	case "QuotaForInviter":
-		common.QuotaForInviter, _ = strconv.Atoi(value)
+		config.QuotaForInviter, _ = strconv.Atoi(value)
 	case "QuotaForInvitee":
-		common.QuotaForInvitee, _ = strconv.Atoi(value)
+		config.QuotaForInvitee, _ = strconv.Atoi(value)
 	case "QuotaRemindThreshold":
-		common.QuotaRemindThreshold, _ = strconv.Atoi(value)
+		config.QuotaRemindThreshold, _ = strconv.Atoi(value)
 	case "PreConsumedQuota":
-		common.PreConsumedQuota, _ = strconv.Atoi(value)
+		config.PreConsumedQuota, _ = strconv.Atoi(value)
 	case "RetryTimes":
-		common.RetryTimes, _ = strconv.Atoi(value)
+		config.RetryTimes, _ = strconv.Atoi(value)
 	case "ModelRatio":
 		err = common.UpdateModelRatioByJSONString(value)
 	case "GroupRatio":
 		err = common.UpdateGroupRatioByJSONString(value)
+	case "CompletionRatio":
+		err = common.UpdateCompletionRatioByJSONString(value)
 	case "TopUpLink":
-		common.TopUpLink = value
+		config.TopUpLink = value
 	case "ChatLink":
-		common.ChatLink = value
+		config.ChatLink = value
 	case "ChannelDisableThreshold":
-		common.ChannelDisableThreshold, _ = strconv.ParseFloat(value, 64)
+		config.ChannelDisableThreshold, _ = strconv.ParseFloat(value, 64)
 	case "QuotaPerUnit":
-		common.QuotaPerUnit, _ = strconv.ParseFloat(value, 64)
+		config.QuotaPerUnit, _ = strconv.ParseFloat(value, 64)
+	case "Theme":
+		config.Theme = value
 	}
 	return err
 }

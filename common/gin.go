@@ -32,29 +32,10 @@ func UnmarshalBodyReusable(c *gin.Context, v any) error {
 	return nil
 }
 
-func UnmarshalBodyIsVersionModel(c *gin.Context) bool {
-	requestBody, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		return false
-	}
-	err = c.Request.Body.Close()
-	if err != nil {
-		return false
-	}
-
-	v := struct {
-		Model string `json:"model"`
-	}{}
-
-	err = json.Unmarshal(requestBody, &v)
-	if err != nil {
-		return false
-	}
-	// Reset request body
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(requestBody))
-
-	if strings.Index(v.Model, "vision") > -1 {
-		return true
-	}
-	return false
+func SetEventStreamHeaders(c *gin.Context) {
+	c.Writer.Header().Set("Content-Type", "text/event-stream")
+	c.Writer.Header().Set("Cache-Control", "no-cache")
+	c.Writer.Header().Set("Connection", "keep-alive")
+	c.Writer.Header().Set("Transfer-Encoding", "chunked")
+	c.Writer.Header().Set("X-Accel-Buffering", "no")
 }

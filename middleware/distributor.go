@@ -2,9 +2,10 @@ package middleware
 
 import (
 	"fmt"
+	"github.com/songquanpeng/one-api/common"
+	"github.com/songquanpeng/one-api/common/logger"
+	"github.com/songquanpeng/one-api/model"
 	"net/http"
-	"one-api/common"
-	"one-api/model"
 	"strconv"
 	"strings"
 
@@ -69,7 +70,7 @@ func Distribute() func(c *gin.Context) {
 			if err != nil {
 				message := fmt.Sprintf("No available service nodes for model %s", modelRequest.Model)
 				if channel != nil {
-					common.SysError(fmt.Sprintf("Service node does not exist: %d", channel.Id))
+					logger.SysError(fmt.Sprintf("Service node does not exist: %d", channel.Id))
 					message = "数据库一致性已被破坏，请联系管理员"
 				}
 				abortWithMessage(c, http.StatusServiceUnavailable, message)
