@@ -99,7 +99,7 @@ func RelayNotFound(c *gin.Context) {
 func replaceUpstreamInfo(info, base string, id, channelType int, isType bool) string {
 	pattern := regexp.MustCompile(`//([\w.-]+)`)
 	base = strings.ReplaceAll(pattern.FindString(base), `//`, "")
-	key := []string{"one-api", "one_api", "ONE_API", "ONE-API", "shell-api", "shell_api", "SHELL_API", "SHELL-API"}
+	key := []string{"one-api", "one_api", "ONE_API", "ONE-API", "shell-api", "shell_api", "SHELL_API", "SHELL-API", "new_api", "new-api", "NEW_API", "NEW-API"}
 	if len(base) > 0 {
 		key = append(key, base)
 	}
