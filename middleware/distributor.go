@@ -22,8 +22,9 @@ func Distribute() func(c *gin.Context) {
 		userId := c.GetInt("id")
 		userGroup, _ := model.CacheGetUserGroup(userId)
 		c.Set("group", userGroup)
+		var requestModel string
 		var channel *model.Channel
-		channelId, ok := c.Get("channelId")
+		channelId, ok := c.Get("specific_channel_id")
 		if ok {
 			id, err := strconv.Atoi(channelId.(string))
 			if err != nil {
@@ -67,6 +68,7 @@ func Distribute() func(c *gin.Context) {
 					modelRequest.Model = "whisper-1"
 				}
 			}
+			requestModel = modelRequest.Model
 			// Support GPTs
 			re := regexp.MustCompile(`gpt-4-gizmo-g-[a-zA-Z0-9]{9}`)
 			if modelRequest.Model == "gpt-4-gizmo-*" || modelRequest.Model == "gpt-4-gizmo-g" || (strings.HasPrefix(modelRequest.Model, "gpt-4-gizmo-g") && !re.MatchString(modelRequest.Model)) {
@@ -76,7 +78,7 @@ func Distribute() func(c *gin.Context) {
 			} else if strings.HasPrefix(modelRequest.Model, "gpt-4-gizmo-g") {
 				modelRequest.Model = "gpt-4-gizmo-*"
 			}
-			channel, err = model.CacheGetRandomSatisfiedChannel(userGroup, modelRequest.Model)
+			channel, err = model.CacheGetRandomSatisfiedChannel(userGroup, modelRequest.Model, false)
 			if err != nil {
 				message := fmt.Sprintf("No available service nodes for model %s", modelRequest.Model)
 				if channel != nil {
@@ -87,24 +89,34 @@ func Distribute() func(c *gin.Context) {
 				return
 			}
 		}
-		c.Set("channel", channel.Type)
-		c.Set("channel_id", channel.Id)
-		c.Set("channel_name", channel.Name)
-		c.Set("model_mapping", channel.GetModelMapping())
-		c.Request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", channel.Key))
-		c.Set("base_url", channel.GetBaseURL())
-		switch channel.Type {
-		case common.ChannelTypeAzure:
-			c.Set("api_version", channel.Other)
-		case common.ChannelTypeXunfei:
-			c.Set("api_version", channel.Other)
-		case common.ChannelTypeGemini:
-			c.Set("api_version", channel.Other)
-		case common.ChannelTypeAIProxyLibrary:
-			c.Set("library_id", channel.Other)
-		case common.ChannelTypeAli:
-			c.Set("plugin", channel.Other)
-		}
+		SetupContextForSelectedChannel(c, channel, requestModel)
 		c.Next()
+	}
+}
+
+func SetupContextForSelectedChannel(c *gin.Context, channel *model.Channel, modelName string) {
+	c.Set("channel", channel.Type)
+	c.Set("channel_id", channel.Id)
+	c.Set("channel_name", channel.Name)
+	c.Set("model_mapping", channel.GetModelMapping())
+	c.Set("original_model", modelName) // for retry
+	c.Request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", channel.Key))
+	c.Set("base_url", channel.GetBaseURL())
+	// this is for backward compatibility
+	switch channel.Type {
+	case common.ChannelTypeAzure:
+		c.Set(common.ConfigKeyAPIVersion, channel.Other)
+	case common.ChannelTypeXunfei:
+		c.Set(common.ConfigKeyAPIVersion, channel.Other)
+	case common.ChannelTypeGemini:
+		c.Set(common.ConfigKeyAPIVersion, channel.Other)
+	case common.ChannelTypeAIProxyLibrary:
+		c.Set(common.ConfigKeyLibraryID, channel.Other)
+	case common.ChannelTypeAli:
+		c.Set(common.ConfigKeyPlugin, channel.Other)
+	}
+	cfg, _ := channel.LoadConfig()
+	for k, v := range cfg {
+		c.Set(common.ConfigKeyPrefix+k, v)
 	}
 }

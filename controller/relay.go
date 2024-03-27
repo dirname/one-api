@@ -1,28 +1,29 @@
 package controller
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/songquanpeng/one-api/common"
 	"github.com/songquanpeng/one-api/common/config"
 	"github.com/songquanpeng/one-api/common/helper"
 	"github.com/songquanpeng/one-api/common/logger"
-	"github.com/songquanpeng/one-api/model"
-	"github.com/songquanpeng/one-api/relay/channel/openai"
+	"github.com/songquanpeng/one-api/middleware"
+	dbmodel "github.com/songquanpeng/one-api/model"
+	"github.com/songquanpeng/one-api/monitor"
 	"github.com/songquanpeng/one-api/relay/constant"
 	"github.com/songquanpeng/one-api/relay/controller"
+	"github.com/songquanpeng/one-api/relay/model"
 	"github.com/songquanpeng/one-api/relay/util"
+	"io"
 	"net/http"
-	"regexp"
-	"strconv"
-	"strings"
 )
 
 // https://platform.openai.com/docs/api-reference/chat
 
-func Relay(c *gin.Context) {
-	relayMode := constant.Path2RelayMode(c.Request.URL.Path)
-	var err *openai.ErrorWithStatusCode
+func relay(c *gin.Context, relayMode int) *model.ErrorWithStatusCode {
+	var err *model.ErrorWithStatusCode
 	switch relayMode {
 	case constant.RelayModeImagesGenerations:
 		err = controller.RelayImageHelper(c, relayMode)
@@ -35,45 +36,97 @@ func Relay(c *gin.Context) {
 	default:
 		err = controller.RelayTextHelper(c)
 	}
-	if err != nil {
+	return err
+}
+
+func Relay(c *gin.Context) {
+	ctx := c.Request.Context()
+	relayMode := constant.Path2RelayMode(c.Request.URL.Path)
+	if config.DebugEnabled {
+		requestBody, _ := common.GetRequestBody(c)
+		logger.Debugf(ctx, "request body: %s", string(requestBody))
+	}
+	channelId := c.GetInt("channel_id")
+	bizErr := relay(c, relayMode)
+	if bizErr == nil {
+		monitor.Emit(channelId, true)
+		return
+	}
+	lastFailedChannelId := channelId
+	channelName := c.GetString("channel_name")
+	group := c.GetString("group")
+	originalModel := c.GetString("original_model")
+	go processChannelRelayError(ctx, channelId, channelName, bizErr)
+	requestId := c.GetString(logger.RequestIdKey)
+	retryTimes := config.RetryTimes
+	if !shouldRetry(c, bizErr.StatusCode) {
+		logger.Errorf(ctx, "relay error happen, status code is %d, won't retry in this case", bizErr.StatusCode)
+		retryTimes = 0
+	}
+	for i := retryTimes; i > 0; i-- {
+		channel, err := dbmodel.CacheGetRandomSatisfiedChannel(group, originalModel, i != retryTimes)
+		if err != nil {
+			logger.Errorf(ctx, "CacheGetRandomSatisfiedChannel failed: %w", err)
+			break
+		}
+		logger.Infof(ctx, "using channel #%d to retry (remain times %d)", channel.Id, i)
+		if channel.Id == lastFailedChannelId {
+			continue
+		}
+		middleware.SetupContextForSelectedChannel(c, channel, originalModel)
+		requestBody, err := common.GetRequestBody(c)
+		c.Request.Body = io.NopCloser(bytes.NewBuffer(requestBody))
+		bizErr = relay(c, relayMode)
+		if bizErr == nil {
+			return
+		}
 		channelId := c.GetInt("channel_id")
-		channel, _err := model.GetChannelById(channelId, false)
-		if _err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": "Not found for channel",
-			})
+		lastFailedChannelId = channelId
+		channelName := c.GetString("channel_name")
+		go processChannelRelayError(ctx, channelId, channelName, bizErr)
+	}
+	if bizErr != nil {
+		if bizErr.StatusCode == http.StatusTooManyRequests {
+			bizErr.Error.Message = "The current service node is overloaded. Please try again later."
 		}
-		baseURL := channel.GetBaseURL()
-		requestId := c.GetString(logger.RequestIdKey)
-		retryTimesStr := c.Query("retry")
-		retryTimes, _ := strconv.Atoi(retryTimesStr)
-		if retryTimesStr == "" {
-			retryTimes = config.RetryTimes
-		}
-		if retryTimes > 0 {
-			c.Redirect(http.StatusTemporaryRedirect, fmt.Sprintf("%s?retry=%d", c.Request.URL.Path, retryTimes-1))
-		} else {
-			if err.StatusCode == http.StatusTooManyRequests {
-				err.Error.Message = "The current service node is overloaded. Please try again later."
-			}
-			err.Error.Message = helper.MessageWithRequestId(replaceUpstreamInfo(err.Error.Message, baseURL, channelId, channel.Type, false), requestId)
-			err.Error.Type = replaceUpstreamInfo(err.Error.Type, baseURL, channelId, channel.Type, true)
-			c.JSON(err.StatusCode, gin.H{
-				"error": err.Error,
-			})
-		}
-		logger.Error(c.Request.Context(), fmt.Sprintf("relay error (channel #%d): %s", channelId, err.Message))
-		// https://platform.openai.com/docs/guides/error-codes/api-errors
-		if util.ShouldDisableChannel(&err.Error, err.StatusCode) {
-			channelId := c.GetInt("channel_id")
-			channelName := c.GetString("channel_name")
-			disableChannel(channelId, channelName, err.Message)
-		}
+		bizErr.Error.Message = helper.MessageWithRequestId(bizErr.Error.Message, requestId)
+		c.JSON(bizErr.StatusCode, gin.H{
+			"error": bizErr.Error,
+		})
+	}
+}
+
+func shouldRetry(c *gin.Context, statusCode int) bool {
+	if _, ok := c.Get("specific_channel_id"); ok {
+		return false
+	}
+	if statusCode == http.StatusTooManyRequests {
+		return true
+	}
+	if statusCode/100 == 5 {
+		return true
+	}
+	if statusCode == http.StatusBadRequest {
+		return false
+	}
+	if statusCode/100 == 2 {
+		return false
+	}
+	return true
+}
+
+func processChannelRelayError(ctx context.Context, channelId int, channelName string, err *model.ErrorWithStatusCode) {
+	logger.Errorf(ctx, "relay error (channel #%d): %s", channelId, err.Message)
+	// https://platform.openai.com/docs/guides/error-codes/api-errors
+	if util.ShouldDisableChannel(&err.Error, err.StatusCode) {
+		monitor.DisableChannel(channelId, channelName, err.Message)
+	} else {
+		monitor.Emit(channelId, false)
 	}
 }
 
 func RelayNotImplemented(c *gin.Context) {
-	err := openai.Error{
+	err := model.Error{
 		Message: "API not implemented",
 		Type:    "PUERHUB_AI_ERROR",
 		Param:   "",
@@ -85,7 +138,7 @@ func RelayNotImplemented(c *gin.Context) {
 }
 
 func RelayNotFound(c *gin.Context) {
-	err := openai.Error{
+	err := model.Error{
 		Message: fmt.Sprintf("Invalid URL (%s %s)", c.Request.Method, c.Request.URL.Path),
 		Type:    "invalid_request_error",
 		Param:   "",
@@ -94,33 +147,4 @@ func RelayNotFound(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{
 		"error": err,
 	})
-}
-
-func replaceUpstreamInfo(info, base string, id, channelType int, isType bool) string {
-	pattern := regexp.MustCompile(`//([\w.-]+)`)
-	base = strings.ReplaceAll(pattern.FindString(base), `//`, "")
-	key := []string{"one-api", "one_api", "ONE_API", "ONE-API", "shell-api", "shell_api", "SHELL_API", "SHELL-API", "new_api", "new-api", "NEW_API", "NEW-API"}
-	if len(base) > 0 {
-		key = append(key, base)
-	}
-	replace := common.ChannelBaseURLs[channelType]
-	replace = strings.ReplaceAll(replace, "https://", "")
-	if isType {
-		replace = fmt.Sprintf("[%d] upstream", id)
-	}
-	for _, k := range key {
-		info = strings.ReplaceAll(info, k, replace)
-	}
-
-	re := regexp.MustCompile(`当前分组 (.*?) 下对于模型 (.*?) `)
-	match := re.FindStringSubmatch(info)
-
-	if len(match) > 0 {
-		info = fmt.Sprintf("The model '%s' under the current service node is unavailable; please switch to a different model", match[2])
-	}
-
-	re = regexp.MustCompile(`( )?\(request id: [^\)]+\)( )?`)
-	info = re.ReplaceAllString(info, "")
-
-	return info
 }

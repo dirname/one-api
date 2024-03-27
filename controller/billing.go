@@ -4,13 +4,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/songquanpeng/one-api/common/config"
 	"github.com/songquanpeng/one-api/model"
-	"github.com/songquanpeng/one-api/relay/channel/openai"
-	"time"
+	relaymodel "github.com/songquanpeng/one-api/relay/model"
 )
 
 func GetSubscription(c *gin.Context) {
-	var remainQuota int
-	var usedQuota int
+	var remainQuota int64
+	var usedQuota int64
 	var err error
 	var token *model.Token
 	var expiredTime int64
@@ -31,7 +30,7 @@ func GetSubscription(c *gin.Context) {
 		expiredTime = 0
 	}
 	if err != nil {
-		Error := openai.Error{
+		Error := relaymodel.Error{
 			Message: err.Error(),
 			Type:    "upstream_error",
 		}
@@ -61,26 +60,19 @@ func GetSubscription(c *gin.Context) {
 }
 
 func GetUsage(c *gin.Context) {
-	var quota int
+	var quota int64
 	var err error
-	//var token *model.Token
+	var token *model.Token
 	if config.DisplayTokenStatEnabled {
-		userId := c.GetInt("id")
-		from := c.Query("start_date")
-		to := c.Query("end_date")
-		var startDate, endDate time.Time
-		startDate, err = time.Parse("2006-01-02", from)
-		endDate, err = time.Parse("2006-01-02", to)
-		quota, err = model.GetPeriodQuotaSum(userId, startDate.Unix(), endDate.Unix())
-		//tokenId := c.GetInt("token_id")
-		//token, err = model.GetTokenById(tokenId)
-		//quota = token.UsedQuota
+		tokenId := c.GetInt("token_id")
+		token, err = model.GetTokenById(tokenId)
+		quota = token.UsedQuota
 	} else {
 		userId := c.GetInt("id")
 		quota, err = model.GetUserUsedQuota(userId)
 	}
 	if err != nil {
-		Error := openai.Error{
+		Error := relaymodel.Error{
 			Message: err.Error(),
 			Type:    "PUERHUB_AI_ERROR",
 		}

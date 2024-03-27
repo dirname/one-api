@@ -8,7 +8,7 @@ import (
 	"github.com/songquanpeng/one-api/common/config"
 	"github.com/songquanpeng/one-api/common/logger"
 	"github.com/songquanpeng/one-api/model"
-	"github.com/songquanpeng/one-api/relay/channel/openai"
+	relaymodel "github.com/songquanpeng/one-api/relay/model"
 	"io"
 	"net/http"
 	"strconv"
@@ -17,7 +17,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func ShouldDisableChannel(err *openai.Error, statusCode int) bool {
+func ShouldDisableChannel(err *relaymodel.Error, statusCode int) bool {
 	if !config.AutomaticDisableChannelEnabled {
 		return false
 	}
@@ -27,13 +27,29 @@ func ShouldDisableChannel(err *openai.Error, statusCode int) bool {
 	if statusCode == http.StatusUnauthorized {
 		return true
 	}
-	if err.Type == "insufficient_quota" || err.Code == "invalid_api_key" || err.Code == "account_deactivated" {
+	switch err.Type {
+	case "insufficient_quota":
+		return true
+	// https://docs.anthropic.com/claude/reference/errors
+	case "authentication_error":
+		return true
+	case "permission_error":
+		return true
+	case "forbidden":
+		return true
+	}
+	if err.Code == "invalid_api_key" || err.Code == "account_deactivated" {
+		return true
+	}
+	if strings.HasPrefix(err.Message, "Your credit balance is too low") { // anthropic
+		return true
+	} else if strings.HasPrefix(err.Message, "This organization has been disabled.") {
 		return true
 	}
 	return false
 }
 
-func ShouldEnableChannel(err error, openAIErr *openai.Error) bool {
+func ShouldEnableChannel(err error, openAIErr *relaymodel.Error) bool {
 	if !config.AutomaticEnableChannelEnabled {
 		return false
 	}
@@ -47,11 +63,11 @@ func ShouldEnableChannel(err error, openAIErr *openai.Error) bool {
 }
 
 type GeneralErrorResponse struct {
-	Error    openai.Error `json:"error"`
-	Message  string       `json:"message"`
-	Msg      string       `json:"msg"`
-	Err      string       `json:"err"`
-	ErrorMsg string       `json:"error_msg"`
+	Error    relaymodel.Error `json:"error"`
+	Message  string           `json:"message"`
+	Msg      string           `json:"msg"`
+	Err      string           `json:"err"`
+	ErrorMsg string           `json:"error_msg"`
 	Header   struct {
 		Message string `json:"message"`
 	} `json:"header"`
@@ -87,10 +103,10 @@ func (e GeneralErrorResponse) ToMessage() string {
 	return ""
 }
 
-func RelayErrorHandler(resp *http.Response) (ErrorWithStatusCode *openai.ErrorWithStatusCode) {
-	ErrorWithStatusCode = &openai.ErrorWithStatusCode{
+func RelayErrorHandler(resp *http.Response) (ErrorWithStatusCode *relaymodel.ErrorWithStatusCode) {
+	ErrorWithStatusCode = &relaymodel.ErrorWithStatusCode{
 		StatusCode: resp.StatusCode,
-		Error: openai.Error{
+		Error: relaymodel.Error{
 			Message: "",
 			Type:    "upstream_error",
 			Code:    "bad_response_status_code",
@@ -100,6 +116,9 @@ func RelayErrorHandler(resp *http.Response) (ErrorWithStatusCode *openai.ErrorWi
 	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return
+	}
+	if config.DebugEnabled {
+		logger.SysLog(fmt.Sprintf("error happened, status code: %d, response: \n%s", resp.StatusCode, string(responseBody)))
 	}
 	err = resp.Body.Close()
 	if err != nil {
@@ -136,20 +155,20 @@ func GetFullRequestURL(baseURL string, requestURL string, channelType int) strin
 	return fullRequestURL
 }
 
-func PostConsumeQuota(ctx context.Context, tokenId int, quotaDelta int, totalQuota int, userId int, channelId int, modelRatio float64, groupRatio float64, modelName string, tokenName string) {
+func PostConsumeQuota(ctx context.Context, tokenId int, quotaDelta int64, totalQuota int64, userId int, channelId int, modelRatio float64, groupRatio float64, modelName string, tokenName string) {
 	// quotaDelta is remaining quota to be consumed
 	err := model.PostConsumeTokenQuota(tokenId, quotaDelta)
 	if err != nil {
 		logger.SysError("error consuming token remain quota: " + err.Error())
 	}
-	err = model.CacheUpdateUserQuota(userId)
+	err = model.CacheUpdateUserQuota(ctx, userId)
 	if err != nil {
 		logger.SysError("error update user quota cache: " + err.Error())
 	}
 	// totalQuota is total quota consumed
 	if totalQuota != 0 {
 		logContent := fmt.Sprintf("Model  multiplier %.2f, basic multiplier %.2f", modelRatio, groupRatio)
-		model.RecordConsumeLog(ctx, userId, channelId, totalQuota, 0, modelName, tokenName, totalQuota, logContent)
+		model.RecordConsumeLog(ctx, userId, channelId, int(totalQuota), 0, modelName, tokenName, totalQuota, logContent)
 		model.UpdateUserUsedQuotaAndRequestCount(userId, totalQuota)
 		model.UpdateChannelUsedQuota(channelId, totalQuota)
 	}
@@ -162,7 +181,7 @@ func GetAzureAPIVersion(c *gin.Context) string {
 	query := c.Request.URL.Query()
 	apiVersion := query.Get("api-version")
 	if apiVersion == "" {
-		apiVersion = c.GetString("api_version")
+		apiVersion = c.GetString(common.ConfigKeyAPIVersion)
 	}
 	return apiVersion
 }
