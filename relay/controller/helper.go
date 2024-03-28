@@ -172,7 +172,40 @@ func postConsumeQuota(ctx context.Context, usage *relaymodel.Usage, meta *util.R
 	if err != nil {
 		logger.Error(ctx, "error update user quota cache: "+err.Error())
 	}
-	logContent := fmt.Sprintf("Model  multiplier %.2f, basic multiplier %.2f", modelRatio, groupRatio)
+	logContent := fmt.Sprintf("Model multiplier %.2f, basic multiplier %.2f", modelRatio, groupRatio)
+	model.RecordConsumeLog(ctx, meta.UserId, meta.ChannelId, promptTokens, completionTokens, textRequest.Model, meta.TokenName, quota, logContent)
+	model.UpdateUserUsedQuotaAndRequestCount(meta.UserId, quota)
+	model.UpdateChannelUsedQuota(meta.ChannelId, quota)
+}
+
+func postFixedConsumeQuota(ctx context.Context, usage *relaymodel.Usage, meta *util.RelayMeta, textRequest *relaymodel.GeneralOpenAIRequest, ratio float64, preConsumedQuota int64, consume float64) {
+	if usage == nil {
+		logger.Error(ctx, "usage is nil, which is unexpected")
+		return
+	}
+	var quota int64
+	promptTokens := usage.PromptTokens
+	completionTokens := usage.CompletionTokens
+	quota = int64(math.Ceil(config.QuotaPerUnit * consume))
+	if ratio != 0 && quota <= 0 {
+		quota = 1
+	}
+	totalTokens := promptTokens + completionTokens
+	if totalTokens == 0 {
+		// in this case, must be some error happened
+		// we cannot just return, because we may have to return the pre-consumed quota
+		quota = 0
+	}
+	quotaDelta := quota - preConsumedQuota
+	err := model.PostConsumeTokenQuota(meta.TokenId, quotaDelta)
+	if err != nil {
+		logger.Error(ctx, "error consuming token remain quota: "+err.Error())
+	}
+	err = model.CacheUpdateUserQuota(ctx, meta.UserId)
+	if err != nil {
+		logger.Error(ctx, "error update user quota cache: "+err.Error())
+	}
+	logContent := fmt.Sprintf("Fixed quota: $%.6f", consume)
 	model.RecordConsumeLog(ctx, meta.UserId, meta.ChannelId, promptTokens, completionTokens, textRequest.Model, meta.TokenName, quota, logContent)
 	model.UpdateUserUsedQuotaAndRequestCount(meta.UserId, quota)
 	model.UpdateChannelUsedQuota(meta.ChannelId, quota)

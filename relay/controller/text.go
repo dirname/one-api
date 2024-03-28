@@ -36,6 +36,12 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 	// get model ratio & group ratio
 	modelRatio := common.GetModelRatio(textRequest.Model)
 	groupRatio := common.GetGroupRatio(meta.Group)
+
+	// special case for zhipu, moonshot, lingyiwanwu
+	if meta.ChannelType == common.ChannelTypeZhipu || meta.ChannelType == common.ChannelTypeMoonshot || meta.ChannelType == common.ChannelTypeLingYiWanWu {
+		groupRatio = 1
+	}
+
 	ratio := modelRatio * groupRatio
 	// pre-consume quota
 	promptTokens := getPromptTokens(textRequest, meta.Mode)
@@ -98,7 +104,19 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 		util.ReturnPreConsumedQuota(ctx, preConsumedQuota, meta.TokenId)
 		return respErr
 	}
+
+	switch strings.ToLower(textRequest.Model) {
+	case "suno-v3":
+		go postFixedConsumeQuota(ctx, usage, meta, textRequest, ratio, preConsumedQuota, modelRatio)
+	case "search-gpts-chat":
+		go postFixedConsumeQuota(ctx, usage, meta, textRequest, ratio, preConsumedQuota, modelRatio)
+	case "search-gpts":
+		go postFixedConsumeQuota(ctx, usage, meta, textRequest, ratio, preConsumedQuota, modelRatio)
+	default:
+		go postConsumeQuota(ctx, usage, meta, textRequest, ratio, preConsumedQuota, modelRatio, groupRatio)
+	}
+
 	// post-consume quota
-	go postConsumeQuota(ctx, usage, meta, textRequest, ratio, preConsumedQuota, modelRatio, groupRatio)
+	//go postConsumeQuota(ctx, usage, meta, textRequest, ratio, preConsumedQuota, modelRatio, groupRatio)
 	return nil
 }
