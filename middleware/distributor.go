@@ -41,46 +41,20 @@ func Distribute() func(c *gin.Context) {
 				return
 			}
 		} else {
-			// Select a channel for the user
-			var modelRequest ModelRequest
-			err := common.UnmarshalBodyReusable(c, &modelRequest)
-			if err != nil {
-				abortWithMessage(c, http.StatusBadRequest, "Invalid request")
-				return
-			}
-			if strings.HasPrefix(c.Request.URL.Path, "/v1/moderations") {
-				if modelRequest.Model == "" {
-					modelRequest.Model = "text-moderation-stable"
-				}
-			}
-			if strings.HasSuffix(c.Request.URL.Path, "embeddings") {
-				if modelRequest.Model == "" {
-					modelRequest.Model = c.Param("model")
-				}
-			}
-			if strings.HasPrefix(c.Request.URL.Path, "/v1/images/generations") {
-				if modelRequest.Model == "" {
-					modelRequest.Model = "dall-e-2"
-				}
-			}
-			if strings.HasPrefix(c.Request.URL.Path, "/v1/audio/transcriptions") || strings.HasPrefix(c.Request.URL.Path, "/v1/audio/translations") {
-				if modelRequest.Model == "" {
-					modelRequest.Model = "whisper-1"
-				}
-			}
-			requestModel = modelRequest.Model
+			requestModel := c.GetString("request_model")
+			var err error
 			// Support GPTs
 			re := regexp.MustCompile(`gpt-4-gizmo-g-[a-zA-Z0-9]{9}`)
-			if modelRequest.Model == "gpt-4-gizmo-*" || modelRequest.Model == "gpt-4-gizmo-g" || (strings.HasPrefix(modelRequest.Model, "gpt-4-gizmo-g") && !re.MatchString(modelRequest.Model)) {
+			if requestModel == "gpt-4-gizmo-*" || requestModel == "gpt-4-gizmo-g" || (strings.HasPrefix(requestModel, "gpt-4-gizmo-g") && !re.MatchString(requestModel)) {
 				message := "Please specify a specific model, GPTs share links typified by strings such as 'g-xxxxxxxxx', featuring an 11-character string that include 'g-'. The complete model name appears as follows: 'gpt-4-gizmo-g-xxxxxxxxx'."
 				abortWithMessage(c, http.StatusServiceUnavailable, message)
 				return
-			} else if strings.HasPrefix(modelRequest.Model, "gpt-4-gizmo-g") {
-				modelRequest.Model = "gpt-4-gizmo-*"
+			} else if strings.HasPrefix(requestModel, "gpt-4-gizmo-g") {
+				requestModel = "gpt-4-gizmo-*"
 			}
-			channel, err = model.CacheGetRandomSatisfiedChannel(userGroup, modelRequest.Model, false)
+			channel, err = model.CacheGetRandomSatisfiedChannel(userGroup, requestModel, false)
 			if err != nil {
-				message := fmt.Sprintf("No available service nodes for model %s", modelRequest.Model)
+				message := fmt.Sprintf("No available service nodes for model %s", requestModel)
 				if channel != nil {
 					logger.SysError(fmt.Sprintf("Service node does not exist: %d", channel.Id))
 					message = "数据库一致性已被破坏，请联系管理员"

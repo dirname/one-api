@@ -24,6 +24,7 @@ import EditRedemption from './pages/Redemption/EditRedemption';
 import TopUp from './pages/TopUp';
 import Log from './pages/Log';
 import Chat from './pages/Chat';
+import LarkOAuth from './components/LarkOAuth';
 import Tokenizer from "./pages/Tokenizer";
 
 const Home = lazy(() => import('./pages/Home'));
@@ -241,6 +242,14 @@ function App() {
         }
       />
       <Route
+        path='/oauth/lark'
+        element={
+          <Suspense fallback={<Loading></Loading>}>
+            <LarkOAuth />
+          </Suspense>
+        }
+      />
+      <Route
         path='/setting'
         element={
           <PrivateRoute>
@@ -284,13 +293,11 @@ function App() {
       {/*    </Suspense>*/}
       {/*  }*/}
       {/*/>*/}
-      <Route
-          path='/tokenizer'
-          element={
-              <Suspense fallback={<Loading></Loading>}>
-                  <Tokenizer />
-              </Suspense>
-          }
+      <Route path='/tokenizer' element={
+          <Suspense fallback={<Loading></Loading>}>
+              <Tokenizer />
+          </Suspense>
+      }
       />
       <Route path='*' element={
           <NotFound />
