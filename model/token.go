@@ -11,19 +11,26 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	TokenStatusEnabled   = 1 // don't use 0, 0 is the default value!
+	TokenStatusDisabled  = 2 // also don't use 0
+	TokenStatusExpired   = 3
+	TokenStatusExhausted = 4
+)
+
 type Token struct {
-	Id             int    `json:"id"`
-	UserId         int    `json:"user_id"`
+	Id             int     `json:"id"`
+	UserId         int     `json:"user_id"`
 	User           User   `json:"-" gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
-	Key            string `json:"key" gorm:"type:char(48);uniqueIndex"`
-	Status         int    `json:"status" gorm:"default:1"`
-	Name           string `json:"name" gorm:"index" `
-	CreatedTime    int64  `json:"created_time" gorm:"bigint"`
-	AccessedTime   int64  `json:"accessed_time" gorm:"bigint"`
-	ExpiredTime    int64  `json:"expired_time" gorm:"bigint;default:-1"` // -1 means never expired
-	RemainQuota    int64  `json:"remain_quota" gorm:"bigint;default:0"`
-	UnlimitedQuota bool   `json:"unlimited_quota" gorm:"default:false"`
-	UsedQuota      int64  `json:"used_quota" gorm:"bigint;default:0"` // used quota
+	Key            string  `json:"key" gorm:"type:char(48);uniqueIndex"`
+	Status         int     `json:"status" gorm:"default:1"`
+	Name           string  `json:"name" gorm:"index" `
+	CreatedTime    int64   `json:"created_time" gorm:"bigint"`
+	AccessedTime   int64   `json:"accessed_time" gorm:"bigint"`
+	ExpiredTime    int64   `json:"expired_time" gorm:"bigint;default:-1"` // -1 means never expired
+	RemainQuota    int64   `json:"remain_quota" gorm:"bigint;default:0"`
+	UnlimitedQuota bool    `json:"unlimited_quota" gorm:"default:false"`
+	UsedQuota      int64   `json:"used_quota" gorm:"bigint;default:0"` // used quota
 	Models         *string `json:"models" gorm:"default:''"`           // allowed models
 	Subnet         *string `json:"subnet" gorm:"default:''"`           // allowed subnet
 }
@@ -63,17 +70,17 @@ func ValidateUserToken(key string) (token *Token, err error) {
 		}
 		return nil, errors.New("token unauthorized")
 	}
-	if token.Status == common.TokenStatusExhausted {
+	if token.Status == TokenStatusExhausted {
 		return nil, fmt.Errorf("token %s (#%d) quota has been reached", token.Name, token.Id)
-	} else if token.Status == common.TokenStatusExpired {
+	} else if token.Status == TokenStatusExpired {
 		return nil, errors.New("token expired")
 	}
-	if token.Status != common.TokenStatusEnabled {
+	if token.Status != TokenStatusEnabled {
 		return nil, errors.New("token is disabled")
 	}
 	if token.ExpiredTime != -1 && token.ExpiredTime < helper.GetTimestamp() {
 		if !common.RedisEnabled {
-			token.Status = common.TokenStatusExpired
+			token.Status = TokenStatusExpired
 			err := token.SelectUpdate()
 			if err != nil {
 				logger.SysError("failed to update token status" + err.Error())
@@ -84,7 +91,7 @@ func ValidateUserToken(key string) (token *Token, err error) {
 	if !token.UnlimitedQuota && token.RemainQuota <= 0 {
 		if !common.RedisEnabled {
 			// in this case, we can make sure the token is exhausted
-			token.Status = common.TokenStatusExhausted
+			token.Status = TokenStatusExhausted
 			err := token.SelectUpdate()
 			if err != nil {
 				logger.SysError("failed to update token status" + err.Error())
