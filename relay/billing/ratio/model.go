@@ -148,7 +148,9 @@ var ModelRatio = map[string]float64{
 	"mistral-large-latest":  8.0 / 1000 * USD,
 	"mistral-embed":         0.1 / 1000 * USD,
 	// https://wow.groq.com/
-	"llama2-70b-4096":    0.7 / 1000 * USD,
+	"llama3-8b-8192":     0.05 / 1000 * USD,
+	"llama3-70b-8192":    0.59 / 1000 * USD,
+	"llama2-70b-4096":    0.64 / 1000 * USD,
 	"llama2-7b-2048":     0.1 / 1000 * USD,
 	"mixtral-8x7b-32768": 0.27 / 1000 * USD,
 	"gemma-7b-it":        0.1 / 1000 * USD,
@@ -277,7 +279,11 @@ func GetCompletionRatio(name string) float64 {
 	}
 	switch name {
 	case "llama2-70b-4096":
-		return 0.8 / 0.7
+		return 0.8 / 0.64
+	case "llama3-70b-8192":
+		return 0.79 / 0.59
+	case "llama3-8b-8192":
+		return 0.1 / 0.05
 	}
 	return 1
 }
