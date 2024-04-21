@@ -1,4 +1,4 @@
-package aiproxy
+package coze
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/songquanpeng/one-api/common/ctxkey"
 	"github.com/songquanpeng/one-api/relay/adaptor"
+	"github.com/songquanpeng/one-api/relay/adaptor/openai"
 	"github.com/songquanpeng/one-api/relay/meta"
 	"github.com/songquanpeng/one-api/relay/model"
 	"io"
@@ -20,7 +21,7 @@ func (a *Adaptor) Init(meta *meta.Meta) {
 }
 
 func (a *Adaptor) GetRequestURL(meta *meta.Meta) (string, error) {
-	return fmt.Sprintf("%s/api/library/ask", meta.BaseURL), nil
+	return fmt.Sprintf("%s/open_api/v2/chat", meta.BaseURL), nil
 }
 
 func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Request, meta *meta.Meta) error {
@@ -33,9 +34,8 @@ func (a *Adaptor) ConvertRequest(c *gin.Context, relayMode int, request *model.G
 	if request == nil {
 		return nil, errors.New("request is nil")
 	}
-	aiProxyLibraryRequest := ConvertRequest(*request)
-	aiProxyLibraryRequest.LibraryId = c.GetString(ctxkey.ConfigLibraryID)
-	return aiProxyLibraryRequest, nil
+	request.User = c.GetString(ctxkey.ConfigUserID)
+	return ConvertRequest(*request), nil
 }
 
 func (a *Adaptor) ConvertImageRequest(request *model.ImageRequest) (any, error) {
@@ -50,11 +50,19 @@ func (a *Adaptor) DoRequest(c *gin.Context, meta *meta.Meta, requestBody io.Read
 }
 
 func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, meta *meta.Meta) (usage *model.Usage, err *model.ErrorWithStatusCode) {
+	var responseText *string
 	if meta.IsStream {
-		err, usage = StreamHandler(c, resp)
+		err, responseText = StreamHandler(c, resp)
 	} else {
-		err, usage = Handler(c, resp)
+		err, responseText = Handler(c, resp, meta.PromptTokens, meta.ActualModelName)
 	}
+	if responseText != nil {
+		usage = openai.ResponseText2Usage(*responseText, meta.ActualModelName, meta.PromptTokens)
+	} else {
+		usage = &model.Usage{}
+	}
+	usage.PromptTokens = meta.PromptTokens
+	usage.TotalTokens = usage.PromptTokens + usage.CompletionTokens
 	return
 }
 
@@ -63,5 +71,5 @@ func (a *Adaptor) GetModelList() []string {
 }
 
 func (a *Adaptor) GetChannelName() string {
-	return "aiproxy"
+	return "coze"
 }
