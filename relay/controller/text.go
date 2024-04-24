@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -38,6 +39,10 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 	meta.ActualModelName = textRequest.Model
 	// get model ratio & group ratio
 	modelRatio := billingratio.GetModelRatio(textRequest.Model)
+	// Support GPTs
+	if regexp.MustCompile(`gpt-4-gizmo-g-[a-zA-Z0-9]{9}`).MatchString(textRequest.Model) {
+		modelRatio = billingratio.GetModelRatio("gpt-4-gizmo-*")
+	}
 	groupRatio := billingratio.GetGroupRatio(meta.Group)
 	ratio := modelRatio * groupRatio
 	// pre-consume quota
