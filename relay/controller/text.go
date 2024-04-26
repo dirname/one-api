@@ -58,6 +58,7 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 	if adaptor == nil {
 		return openai.ErrorWrapper(fmt.Errorf("invalid api type: %d", meta.APIType), "invalid_api_type", http.StatusBadRequest)
 	}
+	adaptor.Init(meta)
 
 	// get request body
 	var requestBody io.Reader
