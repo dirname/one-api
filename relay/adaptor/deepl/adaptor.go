@@ -1,39 +1,32 @@
-package gemini
+package deepl
 
 import (
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
-
 	"github.com/gin-gonic/gin"
-	"github.com/songquanpeng/one-api/common/config"
-	"github.com/songquanpeng/one-api/common/helper"
-	channelhelper "github.com/songquanpeng/one-api/relay/adaptor"
-	"github.com/songquanpeng/one-api/relay/adaptor/openai"
+	"github.com/songquanpeng/one-api/relay/adaptor"
 	"github.com/songquanpeng/one-api/relay/meta"
 	"github.com/songquanpeng/one-api/relay/model"
+	"io"
+	"net/http"
 )
 
 type Adaptor struct {
+	meta       *meta.Meta
+	promptText string
 }
 
 func (a *Adaptor) Init(meta *meta.Meta) {
-
+	a.meta = meta
 }
 
 func (a *Adaptor) GetRequestURL(meta *meta.Meta) (string, error) {
-	version := helper.AssignOrDefault(meta.Config.APIVersion, config.GeminiVersion)
-	action := "generateContent"
-	if meta.IsStream {
-		action = "streamGenerateContent?alt=sse"
-	}
-	return fmt.Sprintf("%s/%s/models/%s:%s", meta.BaseURL, version, meta.ActualModelName, action), nil
+	return fmt.Sprintf("%s/v2/translate", meta.BaseURL), nil
 }
 
 func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Request, meta *meta.Meta) error {
-	channelhelper.SetupCommonRequestHeader(c, req, meta)
-	req.Header.Set("x-goog-api-key", meta.APIKey)
+	adaptor.SetupCommonRequestHeader(c, req, meta)
+	req.Header.Set("Authorization", "DeepL-Auth-Key "+meta.APIKey)
 	return nil
 }
 
@@ -41,7 +34,9 @@ func (a *Adaptor) ConvertRequest(c *gin.Context, relayMode int, request *model.G
 	if request == nil {
 		return nil, errors.New("request is nil")
 	}
-	return ConvertRequest(*request), nil
+	convertedRequest, text := ConvertRequest(*request)
+	a.promptText = text
+	return convertedRequest, nil
 }
 
 func (a *Adaptor) ConvertImageRequest(request *model.ImageRequest) (any, error) {
@@ -52,16 +47,19 @@ func (a *Adaptor) ConvertImageRequest(request *model.ImageRequest) (any, error) 
 }
 
 func (a *Adaptor) DoRequest(c *gin.Context, meta *meta.Meta, requestBody io.Reader) (*http.Response, error) {
-	return channelhelper.DoRequestHelper(a, c, meta, requestBody)
+	return adaptor.DoRequestHelper(a, c, meta, requestBody)
 }
 
 func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, meta *meta.Meta) (usage *model.Usage, err *model.ErrorWithStatusCode) {
 	if meta.IsStream {
-		var responseText string
-		err, responseText = StreamHandler(c, resp)
-		usage = openai.ResponseText2Usage(responseText, meta.ActualModelName, meta.PromptTokens)
+		err = StreamHandler(c, resp, meta.ActualModelName)
 	} else {
-		err, usage = Handler(c, resp, meta.PromptTokens, meta.ActualModelName)
+		err = Handler(c, resp, meta.ActualModelName)
+	}
+	promptTokens := len(a.promptText)
+	usage = &model.Usage{
+		PromptTokens: promptTokens,
+		TotalTokens:  promptTokens,
 	}
 	return
 }
@@ -71,5 +69,5 @@ func (a *Adaptor) GetModelList() []string {
 }
 
 func (a *Adaptor) GetChannelName() string {
-	return "google gemini"
+	return "deepl"
 }

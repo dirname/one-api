@@ -4,11 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"regexp"
-	"strings"
-
 	"github.com/gin-gonic/gin"
 	"github.com/songquanpeng/one-api/common/logger"
 	"github.com/songquanpeng/one-api/relay"
@@ -19,6 +14,10 @@ import (
 	"github.com/songquanpeng/one-api/relay/channeltype"
 	"github.com/songquanpeng/one-api/relay/meta"
 	"github.com/songquanpeng/one-api/relay/model"
+	"io"
+	"net/http"
+	"regexp"
+	"strings"
 )
 
 func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
@@ -93,12 +92,9 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 		logger.Errorf(ctx, "DoRequest failed: %s", err.Error())
 		return openai.ErrorWrapper(err, "do_request_failed", http.StatusInternalServerError)
 	}
-	if resp != nil {
-		errorHappened := (resp.StatusCode != http.StatusOK) || (meta.IsStream && meta.ChannelType != channeltype.Gemini && strings.HasPrefix(resp.Header.Get("Content-Type"), "application/json"))
-		if errorHappened {
-			billing.ReturnPreConsumedQuota(ctx, preConsumedQuota, meta.TokenId)
-			return RelayErrorHandler(resp)
-		}
+	if isErrorHappened(meta, resp) {
+		billing.ReturnPreConsumedQuota(ctx, preConsumedQuota, meta.TokenId)
+		return RelayErrorHandler(resp)
 	}
 
 	// do response
