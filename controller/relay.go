@@ -3,6 +3,7 @@ package controller
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/songquanpeng/one-api/common"
@@ -13,11 +14,14 @@ import (
 	"github.com/songquanpeng/one-api/middleware"
 	dbmodel "github.com/songquanpeng/one-api/model"
 	"github.com/songquanpeng/one-api/monitor"
+	"github.com/songquanpeng/one-api/relay/channeltype"
 	"github.com/songquanpeng/one-api/relay/controller"
 	"github.com/songquanpeng/one-api/relay/model"
 	"github.com/songquanpeng/one-api/relay/relaymode"
 	"io"
 	"net/http"
+	"regexp"
+	"strings"
 )
 
 // https://platform.openai.com/docs/api-reference/chat
@@ -47,6 +51,7 @@ func Relay(c *gin.Context) {
 		logger.Debugf(ctx, "request body: %s", string(requestBody))
 	}
 	channelId := c.GetInt(ctxkey.ChannelId)
+	baseURL := c.GetString(ctxkey.BaseURL)
 	bizErr := relayHelper(c, relayMode)
 	if bizErr == nil {
 		monitor.Emit(channelId, true)
@@ -89,7 +94,12 @@ func Relay(c *gin.Context) {
 		if bizErr.StatusCode == http.StatusTooManyRequests {
 			bizErr.Error.Message = "The current service node is overloaded. Please try again later."
 		}
-		bizErr.Error.Message = helper.MessageWithRequestId(bizErr.Error.Message, requestId)
+		channel, _ := dbmodel.GetChannelById(channelId, true)
+		bizErr.Error.Message = helper.MessageWithRequestId(replaceUpstreamInfo(bizErr.Error.Message, baseURL, channelId, channel.Type, false), requestId)
+		bizErr.Param = replaceUpstreamInfo(bizErr.Param, baseURL, channelId, channel.Type, false)
+		bizErr.Type = replaceUpstreamInfo(bizErr.Type, baseURL, channelId, channel.Type, true)
+		bizErr.Error.Param = replaceUpstreamInfo(bizErr.Error.Param, baseURL, channelId, channel.Type, false)
+		bizErr.Error.Type = replaceUpstreamInfo(bizErr.Error.Type, baseURL, channelId, channel.Type, true)
 		c.JSON(bizErr.StatusCode, gin.H{
 			"error": bizErr.Error,
 		})
@@ -147,4 +157,33 @@ func RelayNotFound(c *gin.Context) {
 	c.JSON(http.StatusNotFound, gin.H{
 		"error": err,
 	})
+}
+
+func replaceUpstreamInfo(info, base string, id, channelType int, isType bool) string {
+	pattern := regexp.MustCompile(`//([\w.-]+)`)
+	base = strings.ReplaceAll(pattern.FindString(base), `//`, "")
+	key := []string{"one-api", "one_api", "ONE_API", "ONE-API", "shell-api", "shell_api", "SHELL_API", "SHELL-API", "new_api", "new-api", "NEW_API", "NEW-API"}
+	if len(base) > 0 {
+		key = append(key, base)
+	}
+	replace := channeltype.ChannelBaseURLs[channelType]
+	replace = strings.ReplaceAll(replace, "https://", "")
+	if isType {
+		replace = fmt.Sprintf("[%s] upstream", base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%d", id))))
+	}
+	for _, k := range key {
+		info = strings.ReplaceAll(info, k, replace)
+	}
+
+	re := regexp.MustCompile(`当前分组 (.*?) 下对于模型 (.*?) `)
+	match := re.FindStringSubmatch(info)
+
+	if len(match) > 0 {
+		info = fmt.Sprintf("The model '%s' under the current service node is unavailable; please switch to a different model", match[2])
+	}
+
+	re = regexp.MustCompile(`( )?\(request id: [^\)]+\)( )?`)
+	info = re.ReplaceAllString(info, "")
+
+	return info
 }
