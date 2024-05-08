@@ -18,6 +18,8 @@ import (
 	relaymodel "github.com/songquanpeng/one-api/relay/model"
 	"io"
 	"net/http"
+	"regexp"
+	"strings"
 )
 
 func isWithinRange(element string, value int) bool {
@@ -105,6 +107,14 @@ func RelayImageHelper(c *gin.Context, relayMode int) *relaymodel.ErrorWithStatus
 	if err != nil {
 		logger.Errorf(ctx, "DoRequest failed: %s", err.Error())
 		return openai.ErrorWrapper(err, "do_request_failed", http.StatusInternalServerError)
+	}
+
+	for k, v := range resp.Header {
+		values := strings.Join(v, ",")
+		re := regexp.MustCompile(`([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,63}`)
+		if re.MatchString(values) || re.MatchString(k) {
+			resp.Header.Del(k)
+		}
 	}
 
 	defer func(ctx context.Context) {

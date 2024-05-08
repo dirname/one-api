@@ -97,6 +97,14 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 		return RelayErrorHandler(resp)
 	}
 
+	for k, v := range resp.Header {
+		values := strings.Join(v, ",")
+		re := regexp.MustCompile(`([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,63}`)
+		if re.MatchString(values) || re.MatchString(k) {
+			resp.Header.Del(k)
+		}
+	}
+
 	// do response
 	usage, respErr := adaptor.DoResponse(c, resp, meta)
 	if respErr != nil {

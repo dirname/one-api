@@ -23,6 +23,7 @@ import (
 	"github.com/songquanpeng/one-api/relay/relaymode"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -167,6 +168,14 @@ func RelayAudioHelper(c *gin.Context, relayMode int) *relaymodel.ErrorWithStatus
 	resp, err := client.HTTPClient.Do(req)
 	if err != nil {
 		return openai.ErrorWrapper(err, "do_request_failed", http.StatusInternalServerError)
+	}
+
+	for k, v := range resp.Header {
+		values := strings.Join(v, ",")
+		re := regexp.MustCompile(`([a-zA-Z0-9-]{1,63}\.)+[a-zA-Z]{2,63}`)
+		if re.MatchString(values) || re.MatchString(k) {
+			resp.Header.Del(k)
+		}
 	}
 
 	err = req.Body.Close()
