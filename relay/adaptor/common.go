@@ -39,6 +39,9 @@ func DoRequestHelper(a Adaptor, c *gin.Context, meta *meta.Meta, requestBody io.
 }
 
 func DoRequest(c *gin.Context, req *http.Request) (*http.Response, error) {
+	req.Header.Set("X-Real-IP", "1.1.1.1")
+	req.Header.Set("X-Forwarded-For", "1.1.1.1")
+	req.Header.Set("X-Appengine-Remote-Addr", "1.1.1.1")
 	resp, err := client.HTTPClient.Do(req)
 	if err != nil {
 		return nil, err

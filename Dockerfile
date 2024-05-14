@@ -1,4 +1,8 @@
-FROM node:16 as builder
+FROM node:20-slim as builder
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
 
 WORKDIR /web
 COPY ./VERSION .
@@ -9,12 +13,13 @@ COPY ./web .
 #RUN DISABLE_ESLINT_PLUGIN='true' REACT_APP_VERSION=$(cat ../VERSION) npm run build
 
 WORKDIR /web/berry
-RUN npm install --registry https://registry.npmmirror.com
-RUN DISABLE_ESLINT_PLUGIN='true' REACT_APP_VERSION=$(cat ../VERSION) npm run build
+RUN pnpm install --registry https://registry.npmmirror.com
+RUN pnpm install apexcharts@3.35.3
+RUN DISABLE_ESLINT_PLUGIN='true' REACT_APP_VERSION=$(cat ../VERSION) pnpm run build
 
-WORKDIR /web/air
-RUN npm install
-RUN DISABLE_ESLINT_PLUGIN='true' REACT_APP_VERSION=$(cat VERSION) npm run build
+#WORKDIR /web/air
+#RUN npm install
+#RUN DISABLE_ESLINT_PLUGIN='true' REACT_APP_VERSION=$(cat VERSION) npm run build
 
 FROM golang AS builder2
 

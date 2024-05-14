@@ -43,6 +43,10 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 		modelRatio = billingratio.GetModelRatio("gpt-4-gizmo-*")
 	}
 	groupRatio := billingratio.GetGroupRatio(meta.Group)
+	// special case for zhipu, moonshot, lingyiwanwu
+	if meta.ChannelType == channeltype.Zhipu || meta.ChannelType == channeltype.Moonshot || meta.ChannelType == channeltype.LingYiWanWu || meta.ChannelType == channeltype.Minimax || meta.ChannelType == channeltype.DeepSeek {
+		groupRatio = 1
+	}
 	ratio := modelRatio * groupRatio
 	// pre-consume quota
 	promptTokens := getPromptTokens(textRequest, meta.Mode)
