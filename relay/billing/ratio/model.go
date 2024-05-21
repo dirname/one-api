@@ -10,7 +10,8 @@ import (
 const (
 	USD2RMB = 7
 	USD     = 500 // $0.002 = 1 -> $1 = 500
-	RMB     = USD / USD2RMB
+	// RMB     = USD / USD2RMB
+	RMB = 500
 )
 
 // ModelRatio
@@ -163,9 +164,16 @@ var ModelRatio = map[string]float64{
 	"llama2-70b-4096":    0.64 / 1000 * USD,
 	"llama2-7b-2048":     0.1 / 1000 * USD,
 	// https://platform.lingyiwanwu.com/docs#-计费单元
-	"yi-34b-chat-0205": 2.5 / 1000 * RMB,
-	"yi-34b-chat-200k": 12.0 / 1000 * RMB,
-	"yi-vl-plus":       6.0 / 1000 * RMB,
+	//"yi-34b-chat-0205": 2.5 / 1000 * RMB,
+	//"yi-34b-chat-200k": 12.0 / 1000 * RMB,
+	//"yi-vl-plus":       6.0 / 1000 * RMB,
+	"yi-large":       20.0 / 1000 * RMB,
+	"yi-large-turbo": 12.0 / 1000 * RMB,
+	"yi-large-rag":   25.0 / 1000 * RMB,
+	"yi-medium":      2.5 / 1000 * RMB,
+	"yi-medium-200k": 12.0 / 1000 * RMB,
+	"yi-spark":       1 / 1000 * RMB,
+	"yi-vision":      6 / 1000 * RMB,
 	// stepfun todo
 	"step-1v-32k": 0.024 * RMB,
 	"step-1-32k":  0.024 * RMB,
