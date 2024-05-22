@@ -14,7 +14,6 @@ COPY ./web .
 
 WORKDIR /web/berry
 RUN pnpm install --registry https://registry.npmmirror.com
-RUN pnpm install apexcharts@3.35.3
 RUN DISABLE_ESLINT_PLUGIN='true' REACT_APP_VERSION=$(cat ../VERSION) pnpm run build
 
 #WORKDIR /web/air
