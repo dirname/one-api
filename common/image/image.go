@@ -20,7 +20,15 @@ import (
 var dataURLPattern = regexp.MustCompile(`data:image/([^;]+);base64,(.*)`)
 
 func IsImageUrl(url string) (bool, error) {
-	resp, err := client.UserContentRequestHTTPClient.Head(url)
+	req, err := http.NewRequest("HEAD", url, nil)
+	if err != nil {
+		return false, err
+	}
+	req.Header.Set("X-Real-IP", "1.1.1.1")
+	req.Header.Set("X-Forwarded-For", "1.1.1.1")
+	req.Header.Set("X-Appengine-Remote-Addr", "1.1.1.1")
+
+	resp, err := client.UserContentRequestHTTPClient.Do(req)
 	if err != nil {
 		return false, err
 	}
@@ -35,7 +43,16 @@ func GetImageSizeFromUrl(url string) (width int, height int, err error) {
 	if !isImage {
 		return
 	}
-	resp, err := client.UserContentRequestHTTPClient.Get(url)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return
+	}
+	req.Header.Set("X-Real-IP", "1.1.1.1")
+	req.Header.Set("X-Forwarded-For", "1.1.1.1")
+	req.Header.Set("X-Appengine-Remote-Addr", "1.1.1.1")
+
+	resp, err := client.UserContentRequestHTTPClient.Do(req)
 	if err != nil {
 		return
 	}
