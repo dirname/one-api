@@ -44,7 +44,7 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 	}
 	groupRatio := billingratio.GetGroupRatio(meta.Group)
 	// special case for zhipu, moonshot, lingyiwanwu
-	if meta.ChannelType == channeltype.Zhipu || meta.ChannelType == channeltype.Moonshot || meta.ChannelType == channeltype.LingYiWanWu || meta.ChannelType == channeltype.Minimax || meta.ChannelType == channeltype.DeepSeek {
+	if meta.ChannelType == channeltype.Zhipu || meta.ChannelType == channeltype.Moonshot || meta.ChannelType == channeltype.LingYiWanWu || meta.ChannelType == channeltype.Minimax || meta.ChannelType == channeltype.DeepSeek || meta.ChannelType == channeltype.Ali {
 		groupRatio = 1
 	}
 	ratio := modelRatio * groupRatio

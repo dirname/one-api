@@ -115,13 +115,19 @@ var ModelRatio = map[string]float64{
 	"chatglm_lite":  0.1429, // ￥0.002 / 1k tokens
 	"cogview-3":     0.25 * RMB,
 	// https://help.aliyun.com/zh/dashscope/developer-reference/tongyi-thousand-questions-metering-and-billing
-	"qwen-turbo":                0.5715, // ￥0.008 / 1k tokens
-	"qwen-plus":                 1.4286, // ￥0.02 / 1k tokens
-	"qwen-max":                  1.4286, // ￥0.02 / 1k tokens
-	"qwen-max-longcontext":      1.4286, // ￥0.02 / 1k tokens
-	"text-embedding-v1":         0.05,   // ￥0.0007 / 1k tokens
-	"ali-stable-diffusion-xl":   8,
-	"ali-stable-diffusion-v1.5": 8,
+	"qwen-turbo":                0.002 * RMB, // ￥0.008 / 1k tokens
+	"qwen-plus":                 0.004 * RMB, // ￥0.02 / 1k tokens
+	"qwen-max":                  0.04 * RMB,  // ￥0.02 / 1k tokens
+	"qwen-max-longcontext":      0.04 * RMB,  // ￥0.02 / 1k tokens
+	"qwen-max-1201":             0.04 * RMB,  // ￥0.02 / 1k tokens
+	"qwen2-72b-instruct":        0.005 * RMB,
+	"qwen2-57b-a14b-instruct":   0.0035 * RMB,
+	"qwen2-7b-instruct":         0.001 * RMB,
+	"qwen2-1.5b-instruct":       0.000001 * RMB,
+	"qwen2-0.5b-instruct":       0.000001 * RMB,
+	"text-embedding-v1":         0.05, // ￥0.0007 / 1k tokens
+	"stable-diffusion-xl":       8,
+	"stable-diffusion-v1.5":     8,
 	"wanx-v1":                   8,
 	"SparkDesk":                 1.2858, // ￥0.018 / 1k tokens
 	"SparkDesk-v1.1":            1.2858, // ￥0.018 / 1k tokens
@@ -314,6 +320,12 @@ func GetCompletionRatio(name string) float64 {
 		return 3
 	}
 	if strings.HasPrefix(name, "deepseek-") {
+		return 2
+	}
+	if strings.HasPrefix(name, "qwen-") {
+		return 3
+	}
+	if strings.HasPrefix(name, "qwen2-") {
 		return 2
 	}
 	switch name {
