@@ -108,6 +108,10 @@ var ModelRatio = map[string]float64{
 	"glm-4":         0.1 * RMB,
 	"glm-4v":        0.1 * RMB,
 	"glm-3-turbo":   0.005 * RMB,
+	"glm-4-0520":    0.1 * RMB,
+	"glm-4-air":     0.001 * RMB,
+	"glm-4-airx":    0.01 * RMB,
+	"glm-4-flash":   0.0001 * RMB,
 	"embedding-2":   0.0005 * RMB,
 	"chatglm_turbo": 0.3572, // ￥0.005 / 1k tokens
 	"chatglm_pro":   0.7143, // ￥0.01 / 1k tokens
@@ -119,7 +123,6 @@ var ModelRatio = map[string]float64{
 	"qwen-plus":                 0.004 * RMB, // ￥0.02 / 1k tokens
 	"qwen-max":                  0.04 * RMB,  // ￥0.02 / 1k tokens
 	"qwen-max-longcontext":      0.04 * RMB,  // ￥0.02 / 1k tokens
-	"qwen-max-1201":             0.04 * RMB,  // ￥0.02 / 1k tokens
 	"qwen2-72b-instruct":        0.005 * RMB,
 	"qwen2-57b-a14b-instruct":   0.0035 * RMB,
 	"qwen2-7b-instruct":         0.001 * RMB,
