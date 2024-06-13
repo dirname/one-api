@@ -20,6 +20,17 @@ import (
 	"strings"
 )
 
+func IsDomesticChannel(e int) bool {
+	channelTypes := []int{channeltype.Zhipu, channeltype.Moonshot, channeltype.LingYiWanWu, channeltype.Minimax, channeltype.DeepSeek, channeltype.Ali, channeltype.Doubao, channeltype.Baichuan}
+
+	for _, a := range channelTypes {
+		if a == e {
+			return true
+		}
+	}
+	return false
+}
+
 func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 	ctx := c.Request.Context()
 	meta := meta.GetByContext(c)
@@ -44,8 +55,12 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 	}
 	groupRatio := billingratio.GetGroupRatio(meta.Group)
 	// special case for zhipu, moonshot, lingyiwanwu
-	if meta.ChannelType == channeltype.Zhipu || meta.ChannelType == channeltype.Moonshot || meta.ChannelType == channeltype.LingYiWanWu || meta.ChannelType == channeltype.Minimax || meta.ChannelType == channeltype.DeepSeek || meta.ChannelType == channeltype.Ali {
-		groupRatio = 1
+	groupRatios := map[string]float64{"vip": 2.0, "svip": 3.0}
+	if IsDomesticChannel(meta.ChannelType) {
+		groupRatio = groupRatios[meta.Group]
+		if groupRatio == 0 {
+			groupRatio = 1
+		}
 	}
 	ratio := modelRatio * groupRatio
 	// pre-consume quota
