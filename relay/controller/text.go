@@ -21,7 +21,7 @@ import (
 )
 
 func IsDomesticChannel(e int) bool {
-	channelTypes := []int{channeltype.Zhipu, channeltype.Moonshot, channeltype.LingYiWanWu, channeltype.Minimax, channeltype.DeepSeek, channeltype.Ali, channeltype.Doubao, channeltype.Baichuan}
+	channelTypes := []int{channeltype.Zhipu, channeltype.Moonshot, channeltype.LingYiWanWu, channeltype.Minimax, channeltype.DeepSeek, channeltype.Ali, channeltype.Doubao, channeltype.Baichuan, channeltype.StepFun}
 
 	for _, a := range channelTypes {
 		if a == e {
@@ -133,7 +133,11 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 	}
 
 	switch strings.ToLower(textRequest.Model) {
+	case "luma-video":
+		go postFixedConsumeQuota(ctx, usage, meta, textRequest, ratio, preConsumedQuota, modelRatio)
 	case "suno-v3":
+		go postFixedConsumeQuota(ctx, usage, meta, textRequest, ratio, preConsumedQuota, modelRatio)
+	case "suno-v3.5":
 		go postFixedConsumeQuota(ctx, usage, meta, textRequest, ratio, preConsumedQuota, modelRatio)
 	case "search-gpts-chat":
 		go postFixedConsumeQuota(ctx, usage, meta, textRequest, ratio, preConsumedQuota, modelRatio)

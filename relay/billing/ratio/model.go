@@ -71,12 +71,13 @@ var ModelRatio = map[string]float64{
 	"dall-e-2":                0.02 * USD, // $0.016 - $0.020 / image
 	"dall-e-3":                0.04 * USD, // $0.040 - $0.120 / image
 	// https://www.anthropic.com/api#pricing
-	"claude-instant-1.2":       0.8 / 1000 * USD,
-	"claude-2.0":               8.0 / 1000 * USD,
-	"claude-2.1":               8.0 / 1000 * USD,
-	"claude-3-haiku-20240307":  0.25 / 1000 * USD,
-	"claude-3-sonnet-20240229": 3.0 / 1000 * USD,
-	"claude-3-opus-20240229":   15.0 / 1000 * USD,
+	"claude-instant-1.2":         0.8 / 1000 * USD,
+	"claude-2.0":                 8.0 / 1000 * USD,
+	"claude-2.1":                 8.0 / 1000 * USD,
+	"claude-3-haiku-20240307":    0.25 / 1000 * USD,
+	"claude-3-sonnet-20240229":   3.0 / 1000 * USD,
+	"claude-3-opus-20240229":     15.0 / 1000 * USD,
+	"claude-3-5-sonnet-20240620": 3.0 / 1000 * USD,
 	// https://cloud.baidu.com/doc/WENXINWORKSHOP/s/hlrk4akp7
 	"ERNIE-4.0-8K":       0.120 * RMB,
 	"ERNIE-3.5-8K":       0.012 * RMB,
@@ -185,9 +186,12 @@ var ModelRatio = map[string]float64{
 	"yi-vision":        6 / 1000 * RMB,
 	"yi-large-preview": 20.0 / 1000 * RMB,
 	// stepfun todo
-	"step-1v-32k": 0.024 * RMB,
+	"step-1-8k":   0.012 * RMB,
 	"step-1-32k":  0.024 * RMB,
-	"step-1-200k": 0.15 * RMB,
+	"step-1-128k": 0.06 * RMB,
+	"step-1-256k": 0.12 * RMB,
+	"step-1v-8k":  0.012 * RMB,
+	"step-1v-32k": 0.024 * RMB,
 	// https://cohere.com/pricing
 	"command":               0.5,
 	"command-nightly":       0.5,
