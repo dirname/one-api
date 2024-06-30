@@ -156,7 +156,8 @@ var ModelRatio = map[string]float64{
 	// https://api.minimax.chat/document/price
 	"abab6.5-chat":  0.03 * RMB,
 	"abab6.5s-chat": 0.01 * RMB,
-	"abab6-chat":    0.1 * RMB,
+	"abab6.5t-chat": 0.005 * RMB,
+	"abab6.5g-chat": 0.005 * RMB,
 	"abab5.5-chat":  0.015 * RMB,
 	"abab5.5s-chat": 0.005 * RMB,
 	// https://docs.mistral.ai/platform/pricing/
@@ -186,12 +187,13 @@ var ModelRatio = map[string]float64{
 	"yi-vision":        6 / 1000 * RMB,
 	"yi-large-preview": 20.0 / 1000 * RMB,
 	// stepfun todo
-	"step-1-8k":   0.012 * RMB,
-	"step-1-32k":  0.024 * RMB,
-	"step-1-128k": 0.06 * RMB,
-	"step-1-256k": 0.12 * RMB,
-	"step-1v-8k":  0.012 * RMB,
-	"step-1v-32k": 0.024 * RMB,
+	"step-1-8k":          5 / 1000 * RMB,
+	"step-1-32k":         15 / 1000 * RMB,
+	"step-1-128k":        40 / 1000 * RMB,
+	"step-1-256k":        95 / 1000 * RMB,
+	"step-1v-8k":         5 / 1000 * RMB,
+	"step-1v-32k":        15 / 1000 * RMB,
+	"step-2-16k-nightly": 38 / 1000 * RMB,
 	// https://cohere.com/pricing
 	"command":               0.5,
 	"command-nightly":       0.5,
@@ -348,6 +350,16 @@ func GetCompletionRatio(name string) float64 {
 		return 3
 	case "command-r-plus":
 		return 5
+	case "step-1-8k", "step-1v-8k":
+		return 4
+	case "step-1-32k", "step-1v-32k":
+		return 70 / 15
+	case "step-1-128k":
+		return 5
+	case "step-1-256k":
+		return 300 / 95
+	case "step-2-16k-nightly":
+		return 120 / 38
 	}
 	return 1
 }
