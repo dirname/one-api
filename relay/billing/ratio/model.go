@@ -138,6 +138,7 @@ var ModelRatio = map[string]float64{
 	"SparkDesk-v2.1":            1.2858, // ￥0.018 / 1k tokens
 	"SparkDesk-v3.1":            1.2858, // ￥0.018 / 1k tokens
 	"SparkDesk-v3.5":            1.2858, // ￥0.018 / 1k tokens
+	"SparkDesk-v4.0":            1.2858, // ￥0.018 / 1k tokens
 	"360GPT_S2_V9":              0.8572, // ¥0.012 / 1k tokens
 	"embedding-bert-512-v1":     0.0715, // ¥0.001 / 1k tokens
 	"embedding_s1_v1":           0.0715, // ¥0.001 / 1k tokens
@@ -152,6 +153,9 @@ var ModelRatio = map[string]float64{
 	// https://platform.baichuan-ai.com/price
 	"Baichuan2-Turbo":      0.008 * RMB,
 	"Baichuan2-Turbo-192k": 0.016 * RMB,
+	"Baichuan3-Turbo":      0.012 * RMB,
+	"Baichuan3-Turbo-128k": 0.024 * RMB,
+	"Baichuan4":            0.1 * RMB,
 	"Baichuan2-53B":        0.02 * RMB,
 	// https://api.minimax.chat/document/price
 	"abab6.5-chat":  0.03 * RMB,
