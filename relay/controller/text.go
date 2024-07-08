@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"github.com/songquanpeng/one-api/common/logger"
 	"github.com/songquanpeng/one-api/relay"
@@ -48,10 +49,10 @@ func RelayTextHelper(c *gin.Context) *model.ErrorWithStatusCode {
 	textRequest.Model, isModelMapped = getMappedModelName(textRequest.Model, meta.ModelMapping)
 	meta.ActualModelName = textRequest.Model
 	// get model ratio & group ratio
-	modelRatio := billingratio.GetModelRatio(textRequest.Model)
+	modelRatio := billingratio.GetModelRatio(textRequest.Model, meta.ChannelType)
 	// Support GPTs
 	if regexp.MustCompile(`gpt-4-gizmo-g-[a-zA-Z0-9]{9}`).MatchString(textRequest.Model) {
-		modelRatio = billingratio.GetModelRatio("gpt-4-gizmo-*")
+		modelRatio = billingratio.GetModelRatio("gpt-4-gizmo-*", meta.ChannelType)
 	}
 	groupRatio := billingratio.GetGroupRatio(meta.Group)
 	// special case for zhipu, moonshot, lingyiwanwu
