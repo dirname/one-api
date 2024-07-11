@@ -107,19 +107,20 @@ var ModelRatio = map[string]float64{
 	"gemini-1.0-pro-latest":        1,
 	"gemini-1.5-flash-latest":      1,
 	// https://open.bigmodel.cn/pricing
-	"glm-4":         0.1 * RMB,
-	"glm-4v":        0.1 * RMB,
-	"glm-3-turbo":   0.005 * RMB,
-	"glm-4-0520":    0.1 * RMB,
-	"glm-4-air":     0.001 * RMB,
-	"glm-4-airx":    0.01 * RMB,
-	"glm-4-flash":   0.0001 * RMB,
-	"embedding-2":   0.0005 * RMB,
-	"chatglm_turbo": 0.3572, // ￥0.005 / 1k tokens
-	"chatglm_pro":   0.7143, // ￥0.01 / 1k tokens
-	"chatglm_std":   0.3572, // ￥0.005 / 1k tokens
-	"chatglm_lite":  0.1429, // ￥0.002 / 1k tokens
-	"cogview-3":     0.25 * RMB,
+	"glm-4":          0.1 * RMB,
+	"glm-4v":         0.1 * RMB,
+	"glm-3-turbo":    0.005 * RMB,
+	"glm-4-0520":     0.1 * RMB,
+	"glm-4-air":      0.001 * RMB,
+	"glm-4-airx":     0.01 * RMB,
+	"glm-4-flash":    0.0001 * RMB,
+	"glm-4-alltools": 0.1 * RMB,
+	"embedding-2":    0.0005 * RMB,
+	"chatglm_turbo":  0.3572, // ￥0.005 / 1k tokens
+	"chatglm_pro":    0.7143, // ￥0.01 / 1k tokens
+	"chatglm_std":    0.3572, // ￥0.005 / 1k tokens
+	"chatglm_lite":   0.1429, // ￥0.002 / 1k tokens
+	"cogview-3":      0.25 * RMB,
 	// https://help.aliyun.com/zh/dashscope/developer-reference/tongyi-thousand-questions-metering-and-billing
 	"qwen-turbo":                0.002 * RMB, // ￥0.008 / 1k tokens
 	"qwen-plus":                 0.004 * RMB, // ￥0.02 / 1k tokens
