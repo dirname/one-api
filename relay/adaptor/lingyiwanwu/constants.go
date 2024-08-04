@@ -7,6 +7,7 @@ var ModelList = []string{
 	"yi-34b-chat-200k",
 	"yi-vl-plus",
 	"yi-large",
+	"yi-large-fc",
 	"yi-large-turbo",
 	"yi-large-rag",
 	"yi-medium",
