@@ -39,6 +39,10 @@ var ModelRatio = map[string]float64{
 	"gpt-4o-2024-08-06":       2.5,   // $0.005 / 1K tokens
 	"gpt-4o-mini":             0.075, // $0.00015 / 1K tokens
 	"gpt-4o-mini-2024-07-18":  0.075, // $0.00015 / 1K tokens
+	"o1-preview":              7.5,   // $0.015 / 1K tokens
+	"o1-preview-2024-09-12":   7.5,   // $0.015 / 1K tokens
+	"o1-mini":                 1.5,   // $0.003 / 1K tokens
+	"o1-mini-2024-09-12":      1.5,   // $0.003 / 1K tokens
 	"gpt-4-vision-preview":    5,     // $0.01 / 1K tokens
 	"gpt-3.5-turbo":           0.25,  // $0.0005 / 1K tokens
 	"gpt-3.5-turbo-0301":      0.75,
@@ -115,6 +119,7 @@ var ModelRatio = map[string]float64{
 	"gemini-1.5-flash-latest":      1,
 	"gemini-1.5-flash":             1,
 	"gemini-1.5-flash-001":         1,
+	"aqa":                          1,
 	// https://open.bigmodel.cn/pricing
 	"glm-4":          0.1 * RMB,
 	"glm-4v":         0.1 * RMB,
@@ -123,7 +128,9 @@ var ModelRatio = map[string]float64{
 	"glm-4-air":      0.001 * RMB,
 	"glm-4-airx":     0.01 * RMB,
 	"glm-4-flash":    0.0001 * RMB,
+	"glm-4-long":     0.001 * RMB,
 	"glm-4-alltools": 0.1 * RMB,
+	"glm-4-plus":     0.05 * RMB,
 	"codegeex-4":     0.0001 * RMB,
 	"embedding-2":    0.0005 * RMB,
 	"chatglm_turbo":  0.3572, // ￥0.005 / 1k tokens
@@ -363,6 +370,9 @@ func GetCompletionRatio(name string, channelType int) float64 {
 			return 3
 		}
 		return 2
+	}
+	if strings.HasPrefix(name, "o1-preview") || strings.HasPrefix(name, "o1-mini") {
+		return 4
 	}
 	if strings.HasPrefix(name, "claude-3") {
 		return 5
