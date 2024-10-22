@@ -181,7 +181,10 @@ func replaceUpstreamInfo(info, base string, id, channelType int, isType bool) st
 		info = strings.ReplaceAll(info, k, replace)
 	}
 
-	re := regexp.MustCompile(`当前分组 (.*?) 下对于模型 (.*?) `)
+	re := regexp.MustCompile(`(?i).*[_\-]api`)
+	info = re.ReplaceAllString(info, replace)
+
+	re = regexp.MustCompile(`当前分组 (.*?) 下对于模型 (.*?) `)
 	match := re.FindStringSubmatch(info)
 
 	if len(match) > 0 {
